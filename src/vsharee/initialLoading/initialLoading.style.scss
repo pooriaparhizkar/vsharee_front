@@ -1,0 +1,17 @@
+@keyframes scaleRotateAnimation {
+    0% {
+        transform: scale(1) rotate(0deg);
+    }
+
+    50% {
+        transform: scale(1.7) rotate(-180deg);
+    }
+
+    100% {
+        transform: scale(1) rotate(-360deg);
+    }
+}
+
+.initial-loading>img:nth-child(1) {
+    animation: scaleRotateAnimation 2s linear infinite;
+}

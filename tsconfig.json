@@ -1,7 +1,34 @@
 {
-  "files": [],
-  "references": [
-    { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" }
-  ]
+  "compilerOptions": {
+      "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+      "target": "ES2022",
+      "lib": ["ES2023", "dom"],
+      "module": "ESNext",
+      "skipLibCheck": true,
+      "allowJs": true,
+      "baseUrl": "src",
+      "jsx": "react-jsx",
+      "paths": {
+          "*": ["*"],
+          "@/*": ["*"],
+          "data/*": ["data/*"],
+          "interfaces/*": ["interfaces/*"],
+          "scripts/*": ["scripts/*"]
+      },
+      "moduleResolution": "bundler",
+      "allowImportingTsExtensions": true,
+      "isolatedModules": true,
+      "moduleDetection": "force",
+      "noEmit": true,
+
+      /* Linting */
+      "strict": true,
+      "forceConsistentCasingInFileNames": true,
+      "noUnusedLocals": false, // Set to false to ignore unused local variables
+      "noUnusedParameters": false, // Set to false to ignore unused parameters
+      "noFallthroughCasesInSwitch": true,
+      "noUncheckedSideEffectImports": true,
+      "resolveJsonModule": true
+  },
+  "include": ["src/**/*", "vite.config.ts"]
 }

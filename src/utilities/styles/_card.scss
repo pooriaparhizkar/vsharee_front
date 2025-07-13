@@ -1,0 +1,83 @@
+@use '../references/index' as references;
+
+* {
+    &::-webkit-scrollbar {
+        width: 5px;
+        height: 5px;
+    }
+
+    &::-webkit-scrollbar:hover {
+        width: 5px;
+        height: 5px;
+    }
+
+    /* Track */
+    &::-webkit-scrollbar-track {
+        background-color: #D2DEFE;
+        // box-shadow: inset 0 0 5px grey;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    /* Handle */
+    &::-webkit-scrollbar-thumb {
+        background-color: #205BFC;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    /* Handle on hover */
+    &::-webkit-scrollbar-thumb:hover {
+        width: 50px;
+        background-color: #4D7CFD;
+    }
+}
+
+.vsharee-skeleton {
+    background-color: references.$dark05; // Use a slightly darker background color
+    display: block;
+    position: relative;
+    overflow: hidden;
+
+    &::after {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+
+        transform: translateX(-100%);
+        background-image: linear-gradient(90deg,
+                rgba(references.$dark06, 0) 0, // Use a very light gray for the start
+                rgba(references.$dark06, 0.2) 50%, // Slightly darker gray for shimmer effect
+                rgba(references.$dark06, 0)); // Fade out to transparent
+        animation: skeleton-background-animation 1.5s infinite; // Adjust animation speed if needed
+        content: '';
+    }
+
+    @keyframes skeleton-background-animation {
+        100% {
+            transform: translateX(100%);
+        }
+    }
+}
+
+
+.clickable {
+    cursor: pointer;
+    transition: opacity 0.2s ease-in-out;
+
+    &:hover {
+        opacity: 0.5;
+
+    }
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 60px white inset !important;
+    background-color: white !important;
+    background-clip: content-box !important;
+}
