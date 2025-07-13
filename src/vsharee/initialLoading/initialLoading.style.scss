@@ -12,6 +12,9 @@
     }
 }
 
-.initial-loading>img:nth-child(1) {
-    animation: scaleRotateAnimation 2s linear infinite;
+.initial-loading {
+
+    >img:nth-child(1) {
+        animation: scaleRotateAnimation 2s linear infinite;
+    }
 }
