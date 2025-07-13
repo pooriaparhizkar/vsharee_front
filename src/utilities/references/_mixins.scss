@@ -79,15 +79,3 @@
         #{$property}: $web-value;
     }
 }
-
-@mixin rtl {
-    @at-root body[dir='rtl'] & {
-        @content;
-    }
-}
-
-@mixin ltr {
-    @at-root body[dir='ltr'] & {
-        @content;
-    }
-}

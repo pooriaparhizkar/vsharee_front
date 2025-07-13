@@ -3,8 +3,8 @@
 body {
     padding: 0;
     margin: 0;
-    direction: rtl;
-    background-color: #f1f8ff;
+    direction: ltr;
+    background-color: #0c0b10;
 }
 
 #root {
@@ -25,55 +25,6 @@ a:hover {
 }
 
 @theme {
-    --color-darkPurple-100: #383952;
-    --color-darkPurple-80: #606175;
-    --color-darkPurple-60: #888897;
-    --color-darkPurple-40: #afb0ba;
-    --color-darkPurple-20: #d7d7dc;
-
-    --color-primary-100: #205bfc;
-    --color-primary-80: #4d7cfd;
-    --color-primary-60: #799dfd;
-    --color-primary-40: #a6bdfe;
-    --color-primary-20: #d2defe;
-
-    --color-secondary-100: #2ecbff;
-    --color-secondary-80: #4ecaff;
-    --color-secondary-60: #7ad7ff;
-    --color-secondary-40: #a7e5ff;
-    --color-secondary-20: #d3f2ff;
-
-    --color-black-100: #25262d;
-    --color-black-80: #505157;
-    --color-black-60: #7c7d81;
-    --color-black-40: #a8a8ab;
-    --color-black-20: #d3d4d5;
-
-    --color-subtitle: #859abc;
-    --color-background: #f1f8ff;
-
-    --color-positive-default: #2ac769;
-    --color-positive-dark: #1ab759;
-    --color-positive-light: #40dd7f;
-
-    --color-warning-default: #f6a609;
-    --color-warning-dark: #e89806;
-    --color-warning-light: #ffbc1f;
-
-    --color-negative-default: #fb4e4e;
-    --color-negative-dark: #e93c3c;
-    --color-negative-light: #ff6262;
-
-    --color-white: #ffffff;
-
-    --color-primaryGradient-1: #205bfc;
-    --color-primaryGradient-2: #799dfd;
-
-    --color-secondaryGradient-1: #2ecbff;
-    --color-secondaryGradient-2: #7ad7ff;
-
-    --color-badge-successBg: #1ab7591a;
-    --color-badge-warningBg: #f6a6091a;
-    --color-badge-dangerBg: #e93c3c1a;
-    --color-badge-infoBg: #4d7cfd1a;
+    --color-primary: #ff0d1d;
+    --color-background: #0c0b10;
 }

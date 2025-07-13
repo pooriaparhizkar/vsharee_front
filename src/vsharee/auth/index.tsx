@@ -1,14 +1,27 @@
-import React from 'react';
+import React, { useState } from 'react';
+import Card from '@/utilities/components/card';
+import Login from './login';
+import Signup from './signup';
+import Button from '@mui/material/Button';
 
 const Authentication: React.FC = () => {
+    const [isLogin, setIsLogin] = useState(true);
     return (
-        <div
-            className="flex h-dvh w-full items-center justify-center"
-            style={{
-                background: `linear-gradient(135deg, var(--color-primary-100), var(--color-primary-60), var(--color-secondary-100), var(--color-secondary-60))`,
-            }}
-        >
-            <h2>Auth</h2>
+        <div className="flex h-dvh w-full items-center justify-center bg-[linear-gradient(135deg,var(--color-primary),#3c0b10,var(--color-background))]">
+            <Card className="max-w-[450px]" title={isLogin ? 'Login' : 'Signup'}>
+                {isLogin ? <Login /> : <Signup />}
+                <div className="mt-4 text-center">
+                    {isLogin ? (
+                        <Button size="small" variant="text" onClick={() => setIsLogin(false)}>
+                            Don't have an account? Signup
+                        </Button>
+                    ) : (
+                        <Button size="small" variant="text" onClick={() => setIsLogin(true)}>
+                            Already have an account? Login
+                        </Button>
+                    )}
+                </div>
+            </Card>
         </div>
     );
 };

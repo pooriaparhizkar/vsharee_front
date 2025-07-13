@@ -5,7 +5,7 @@ import { authToken } from './index';
 function generateHeader(object: any = {}): any {
     const header: { [k: string]: any } = {};
     if (authToken.get()) {
-        header['Authorization'] = 'Bearer ' + authToken.get()?.accessToken;
+        header['Authorization'] = 'Bearer ' + authToken.get();
     }
     for (const key of Object.keys(object)) {
         header[key] = object[key];
@@ -233,7 +233,7 @@ export function _upload<R>(
             else reject({ status: request.status, value: null });
         };
         request.onerror = () => reject({ status: request.status, data: null });
-        if (auth) request.setRequestHeader('Authorization', 'Bearer ' + authToken.get()?.accessToken);
+        if (auth) request.setRequestHeader('Authorization', 'Bearer ' + authToken.get());
         request.timeout = 45000;
         request.send(formData);
     });

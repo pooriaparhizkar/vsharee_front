@@ -13,7 +13,7 @@ const Header: React.FC = () => {
         setAuthStatus(AuthStatus.inValid);
     }
     return (
-        <div className="border-b-primary-20 fixed top-0 left-0 z-10 flex h-full max-h-20 min-h-20 w-full items-center border-b bg-white px-4 pr-[276px] max-[768px]:pr-[64px]">
+        <div className="border-b-primary-20 fixed top-0 left-0 z-10 flex h-full max-h-20 min-h-20 w-full items-center border-b px-4 pr-[276px] max-[768px]:pr-[64px]">
             <h1>vSharee</h1>
         </div>
     );

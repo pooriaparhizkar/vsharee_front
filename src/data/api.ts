@@ -1,7 +1,11 @@
-// const ENV = process.env.NEXT_PUBLIC_TELEGRAM_URL;
+const BASE_URL = import.meta.env.VITE_API_URL;
 
 export const API = {
+    auth: {
+        login: BASE_URL + '/auth/login',
+        signup: BASE_URL + '/auth/signup',
+    },
     profile: {
-        mine: '/profile/mine',
+        mine: BASE_URL + '/profile/mine',
     },
 };

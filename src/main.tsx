@@ -11,10 +11,11 @@ createRoot(document.getElementById('root')!).render(
             hideProgressBar={false}
             newestOnTop={false}
             closeOnClick
-            rtl
             pauseOnFocusLoss
             draggable
             pauseOnHover
+            theme="dark"
+            className="text-sm"
         />
         <App />
     </>,

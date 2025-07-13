@@ -1,4 +1,4 @@
-import { AuthStatus, UserData } from '@/interfaces';
+import { AuthStatus, UserType } from '@/interfaces';
 import { authToken, get } from '../scripts';
 import { API } from '@/data';
 
@@ -12,9 +12,9 @@ export const getProfile = (setAuthStatusAtom: any, setuserDataAtom: any) => {
             setAuthStatusAtom(AuthStatus.inValid);
             resolve(true);
         } else {
-            get<UserData>(API.profile.mine)
+            get<UserType>(API.profile.mine)
                 .then((res) => {
-                    setuserDataAtom(res.value.value);
+                    setuserDataAtom(res.value);
                     setAuthStatusAtom(AuthStatus.valid);
                 })
                 .catch(({ status }) => {

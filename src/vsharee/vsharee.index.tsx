@@ -28,7 +28,7 @@ const Vsharee: React.FC = () => {
                             <div className="flex h-full w-full min-w-0 flex-col">
                                 <Header />
                                 <div
-                                    className={`bg-background mt-[80px] h-full min-h-[calc(100vh-80px)] flex-1 p-4 transition-all max-lg:pb-[64px]`}
+                                    className={`mt-[80px] h-full min-h-[calc(100vh-80px)] flex-1 p-4 transition-all max-lg:pb-[64px]`}
                                 >
                                     <Routes>
                                         <Route path={PATH.dashboard} element={<h1>Dashboard</h1>} />
