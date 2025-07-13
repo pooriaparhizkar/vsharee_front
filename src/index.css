@@ -1,12 +1,5 @@
 @import 'tailwindcss';
 
-body {
-    padding: 0;
-    margin: 0;
-    direction: ltr;
-    background-color: #0c0b10;
-}
-
 #root {
     min-height: 100vh;
 }
@@ -25,6 +18,6 @@ a:hover {
 }
 
 @theme {
-    --color-primary: #ff0d1d;
-    --color-background: #0c0b10;
+    --color-primary: #eb3942;
+    --color-background: #161616;
 }

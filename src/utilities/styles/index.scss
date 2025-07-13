@@ -1,4 +1,4 @@
-@forward '../references/index';
+@use '../references/index' as references;
 @forward './font';
 @forward './card';
 @forward 'react-toastify/dist/ReactToastify.css';
@@ -12,6 +12,8 @@ body {
     margin: 0;
     overflow-x: hidden;
     direction: ltr;
+    box-sizing: border-box;
+    background-color: references.$background !important;
 
     #root {
         overflow: hidden;
@@ -40,4 +42,14 @@ a {
 a:hover {
     text-decoration: none;
     opacity: 0.9 !important;
+}
+
+.hoverable {
+    cursor: pointer;
+
+    &:hover {
+        opacity: 0.8;
+    }
+
+    transition: opacity 0.2s ease-in-out;
 }

@@ -8,7 +8,7 @@ function App() {
         palette: {
             mode: 'dark',
             primary: {
-                main: '#ff0d1d',
+                main: '#eb3942',
             },
         },
         components: {

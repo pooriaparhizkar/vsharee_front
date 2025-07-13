@@ -7,5 +7,6 @@ export const API = {
     },
     profile: {
         mine: BASE_URL + '/profile/mine',
+        search: (page: number, pageSize: number) => `${BASE_URL}/profile/search/${page}/${pageSize}`,
     },
 };
