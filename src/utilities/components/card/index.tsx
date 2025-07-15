@@ -4,7 +4,7 @@ const Card: React.FC<CardProps> = (props: CardProps) => {
     return (
         <div
             style={props.style}
-            className={`bg-background/50 flex w-full flex-col rounded-xl border border-white/10 p-6 shadow-lg backdrop-blur-2xl ${props.className}`}
+            className={`bg-background/50 flex w-full flex-col rounded-xl border border-white/10 p-6 shadow-lg backdrop-blur-2xl ${props.className ?? ''}`}
         >
             {props.title && (
                 <div className="mb-6 flex items-center">

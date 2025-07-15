@@ -38,6 +38,8 @@ export default function EditGroupButton(props: EditGroupButtonProps) {
     ];
 
     const handleClick = (event: React.MouseEvent<HTMLElement>) => {
+        event.preventDefault();
+        event.stopPropagation();
         setAnchorEl(event.currentTarget);
     };
     const handleClose = () => {

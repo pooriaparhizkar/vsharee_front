@@ -5,11 +5,12 @@ import { get } from '@/scripts';
 import { API } from '@/data';
 import { GroupType } from '@/interfaces';
 import GroupSkeleton from './skeleton';
-import { EditGroupButton } from './components';
+import { EditGroupButton, GroupDetailModal } from './components';
 
 const Group: React.FC = () => {
     const { id } = useParams();
     const [groupData, setGroupData] = useState<GroupType | null>();
+    const [isGroupDetailModalOpen, setIsGroupDetailModalOpen] = useState(false);
 
     function fetchGroupData() {
         if (id) {
@@ -25,17 +26,26 @@ const Group: React.FC = () => {
     }, [id]);
     return (
         <div className="flex w-full justify-center">
+            <GroupDetailModal
+                onClose={() => setIsGroupDetailModalOpen(false)}
+                isOpen={isGroupDetailModalOpen}
+                groupData={groupData}
+            />
             <div className="mx-auto w-full max-w-[1300px]">
                 {groupData !== undefined ? (
                     <div>
                         <Card>
-                            <div className="flex flex-col gap-4">
+                            <div className="flex cursor-pointer flex-col gap-4">
                                 <div className="flex items-center">
-                                    <div className="flex items-center gap-2">
+                                    <div
+                                        onClick={() => setIsGroupDetailModalOpen(true)}
+                                        className="flex h-full w-full items-center gap-2"
+                                    >
                                         <h1 className="text-md font-medium">{groupData?.name}</h1>
                                         <h6 className="text-gray99 text-sm font-light">@{groupData?.id}</h6>
+                                        <span className="flex-1" />
                                     </div>
-                                    <span className="flex-1" />
+
                                     <EditGroupButton groupData={groupData} reFetch={fetchGroupData} />
                                 </div>
                                 {groupData?.description && (
