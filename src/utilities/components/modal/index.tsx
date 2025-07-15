@@ -34,7 +34,10 @@ export default function Modal(props: ModalProps) {
             }}
         >
             <Fade in={props.isOpen}>
-                <div className="absolute top-1/2 left-1/2 w-[400px] -translate-x-1/2 -translate-y-1/2 transform">
+                <div
+                    style={props.width ? { width: props.width } : undefined}
+                    className={`absolute top-1/2 left-1/2 w-[400px] -translate-x-1/2 -translate-y-1/2 transform`}
+                >
                     <Card title={props.title}>{props.children}</Card>
                 </div>
             </Fade>

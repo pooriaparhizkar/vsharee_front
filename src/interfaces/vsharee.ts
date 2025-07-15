@@ -1,7 +1,7 @@
 export interface __GroupType {
     id: string;
     name: string;
-    description: string;
+    description?: string;
     createdAt: string;
     creatorId: string;
     creator: __UserType;

@@ -1,11 +1,11 @@
 import { Input, Modal } from '@/utilities/components';
 import { useEffect, useRef, useState } from 'react';
-import { FormGroupModalType } from './type';
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
 import { get, post, put } from '@/scripts';
 import { API } from '@/data';
 import { toast } from 'react-toastify';
+import { FormGroupModalType } from './type';
 
 const FormGroupModal: React.FC<FormGroupModalType> = (props: FormGroupModalType) => {
     const [id, setId] = useState<string>(props.selectedGroup?.id ?? '');
@@ -97,7 +97,11 @@ const FormGroupModal: React.FC<FormGroupModalType> = (props: FormGroupModalType)
     }
 
     return (
-        <Modal isOpen={props.isOpen} onClose={() => closeModal()} title="Create Group">
+        <Modal
+            isOpen={props.isOpen}
+            onClose={() => closeModal()}
+            title={`${props.selectedGroup ? 'Edit' : 'Create'} Group`}
+        >
             <div className="flex flex-col gap-4">
                 <Input
                     required
@@ -125,7 +129,7 @@ const FormGroupModal: React.FC<FormGroupModalType> = (props: FormGroupModalType)
                         onClick={submitHandler}
                         loading={submitLoading}
                     >
-                        Create
+                        Apply
                     </Button>
                     <Button onClick={() => closeModal()} size="large" className="flex-1" variant="text">
                         Cancel

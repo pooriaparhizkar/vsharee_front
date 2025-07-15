@@ -8,7 +8,7 @@ const Card: React.FC<CardProps> = (props: CardProps) => {
         >
             {props.title && (
                 <div className="mb-6 flex items-center">
-                    <h1 className="text-primary-100 text-2xl font-bold">{props.title}</h1>
+                    <h1 className="text-primary-100 text-xl font-bold">{props.title}</h1>
                     <span className="flex-1" />
                     {props.extra && props.extra}
                 </div>

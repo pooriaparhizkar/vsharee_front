@@ -4,10 +4,9 @@ import { GroupType, Pagination } from '@/interfaces';
 import { useEffect, useState } from 'react';
 import { get } from '@/scripts';
 import Button from '@mui/material/Button';
-import FormGroupModal from './modals/form';
 import Skeleton from '@mui/material/Skeleton';
 import { Link } from 'react-router-dom';
-import { MdEditNote } from 'react-icons/md';
+import { FormGroupModal } from '@/vsharee/components';
 
 const DashboardMyGroupsCard: React.FC = () => {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -50,14 +49,6 @@ const DashboardMyGroupsCard: React.FC = () => {
                                 <Link className="flex-1" to={PATH.group(item.id)}>
                                     <h6 className="text-md clickable font-light">{item.name}</h6>
                                 </Link>
-                                <MdEditNote
-                                    onClick={() => {
-                                        setSelectedGroup(item);
-                                        setIsCreateModalOpen(true);
-                                    }}
-                                    className="clickable"
-                                    size={24}
-                                />
                             </div>
                         ))
                     ) : (

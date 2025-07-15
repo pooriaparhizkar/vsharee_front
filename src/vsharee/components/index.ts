@@ -1,3 +1,4 @@
+import FormGroupModal from './formGroupModal';
 import Header from './header';
 
-export { Header };
+export { Header, FormGroupModal };

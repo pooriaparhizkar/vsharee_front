@@ -26,7 +26,9 @@ const DashboardTopGroupsCard: React.FC = () => {
                     data.map((item, index) => (
                         <div key={index} className="clickable flex items-center gap-1">
                             <div className="flex h-10 w-full items-center gap-4">
-                                <h6 className="text-md flex-1 font-light">{item.name}</h6>
+                                <h6 className="text-md flex-1 overflow-hidden font-light text-ellipsis whitespace-nowrap">
+                                    {item.name}
+                                </h6>
                                 <span className="text-gray99 text-sm font-light">
                                     {item.members.length} Member{item.members.length > 1 ? 's' : ''}
                                 </span>
