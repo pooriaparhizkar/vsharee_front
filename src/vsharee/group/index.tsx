@@ -1,16 +1,18 @@
 import { useParams } from 'react-router-dom';
 import { Card } from '@/utilities/components';
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { get } from '@/scripts';
 import { API } from '@/data';
 import { GroupType } from '@/interfaces';
 import GroupSkeleton from './skeleton';
 import { EditGroupButton, GroupDetailModal } from './components';
+import { SocketContext } from '@/context/SocketContext';
 
 const Group: React.FC = () => {
     const { id } = useParams();
     const [groupData, setGroupData] = useState<GroupType | null>();
     const [isGroupDetailModalOpen, setIsGroupDetailModalOpen] = useState(false);
+    const socket = useContext(SocketContext);
 
     function fetchGroupData() {
         if (id) {
@@ -22,8 +24,19 @@ const Group: React.FC = () => {
         }
     }
     useEffect(() => {
-        fetchGroupData();
+        if (id) {
+            fetchGroupData();
+            socket.emit('joinGroup', { groupId: id });
+        }
+
+        socket.on('joinedGroup', (res) => console.log(res));
     }, [id]);
+
+    useEffect(() => {
+        return () => {
+            socket.emit('leftGroup', { groupId: id });
+        };
+    }, []);
     return (
         <div className="flex w-full justify-center">
             <GroupDetailModal

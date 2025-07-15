@@ -2,6 +2,7 @@ import { createTheme, ThemeProvider } from '@mui/material/styles';
 import './utilities/styles/index.scss';
 import Vsharee from './vsharee/vsharee.index';
 import CssBaseline from '@mui/material/CssBaseline';
+import { SocketContext, socket } from '@/context/SocketContext';
 
 function App() {
     const darkTheme = createTheme({
@@ -28,10 +29,12 @@ function App() {
     });
 
     return (
-        <ThemeProvider theme={darkTheme}>
-            <CssBaseline />
-            <Vsharee />
-        </ThemeProvider>
+        <SocketContext.Provider value={socket}>
+            <ThemeProvider theme={darkTheme}>
+                <CssBaseline />
+                <Vsharee />
+            </ThemeProvider>
+        </SocketContext.Provider>
     );
 }
 
