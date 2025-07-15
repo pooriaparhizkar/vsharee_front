@@ -6,7 +6,12 @@ export const API = {
         signup: BASE_URL + '/auth/signup',
     },
     profile: {
+        index: BASE_URL + '/profile',
         mine: BASE_URL + '/profile/mine',
-        search: (page: number, pageSize: number) => `${BASE_URL}/profile/search/${page}/${pageSize}`,
+        search: (page: number, pageSize: number) => `${API.profile.index}/search/${page}/${pageSize}`,
+    },
+    group: {
+        index: BASE_URL + '/group',
+        mine: (page: number, pageSize: number) => `${API.group.index}/mine/${page}/${pageSize}`,
     },
 };

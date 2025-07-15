@@ -32,7 +32,7 @@ const Header: React.FC = () => {
     }
     return (
         <div className="border-primary fixed top-0 left-0 z-10 flex max-h-20 min-h-20 w-full items-center justify-center border-b p-4">
-            <div className="flex h-full w-full max-w-[1200px] items-center">
+            <div className="flex h-full w-full max-w-[1300px] items-center">
                 <div className="flex h-full w-full items-center gap-6">
                     <img className="hoverable h-14" src={Logo} alt="vsharee" />
                     <Search />

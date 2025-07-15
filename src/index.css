@@ -20,4 +20,5 @@ a:hover {
 @theme {
     --color-primary: #eb3942;
     --color-background: #161616;
+    --color-gray99: #999999;
 }

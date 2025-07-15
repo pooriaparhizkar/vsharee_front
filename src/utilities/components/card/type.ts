@@ -1,6 +1,9 @@
+import { CSSProperties, ReactNode } from 'react';
+
 export interface CardProps {
-    title: string;
+    title?: string;
     className?: string;
-    style?: React.CSSProperties;
-    children: React.ReactNode;
+    style?: CSSProperties;
+    children: ReactNode;
+    extra?: ReactNode;
 }

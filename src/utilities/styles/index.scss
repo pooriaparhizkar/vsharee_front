@@ -21,6 +21,8 @@ body {
         display: flex;
         flex-direction: column;
     }
+
+    background: linear-gradient(0deg, var(--color-primary), #3c0b10, var(--color-background));
 }
 
 h1,
