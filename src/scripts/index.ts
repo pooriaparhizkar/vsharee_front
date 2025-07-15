@@ -2,7 +2,7 @@ import { _del, _form, _get, _patch, _post, _postFormData, _put, _upload } from '
 import { _copyToClipboard } from './copyToClipboard';
 import { _useEventListener } from './eventListener';
 import { _objectToFormData } from './formData';
-import { _hexToRgba } from './hexToRGBA';
+import { _hexToRgba } from './hexToRgba';
 import { _authToken } from './storage';
 import { _extractURLParams, _IsJsonString } from './string';
 import { _secondToTime } from './time';

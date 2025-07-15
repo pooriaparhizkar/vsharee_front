@@ -4,6 +4,8 @@ export interface __GroupType {
     description: string;
     createdAt: string;
     creatorId: string;
+    creator: __UserType;
+    members: __UserType[];
 }
 export interface __UserType {
     id: string;

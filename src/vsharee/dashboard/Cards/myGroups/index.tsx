@@ -43,7 +43,7 @@ const DashboardMyGroupsCard: React.FC = () => {
                         data.map((item, index) => (
                             <div key={index} className="clickable flex items-center gap-1">
                                 <div className="flex h-10 items-center gap-4">
-                                    <h6>{item.name}</h6>
+                                    <h6 className="text-md flex-1 font-light">{item.name}</h6>
                                 </div>
                             </div>
                         ))
