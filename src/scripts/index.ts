@@ -2,6 +2,7 @@ import { _del, _form, _get, _patch, _post, _postFormData, _put, _upload } from '
 import { _copyToClipboard } from './copyToClipboard';
 import { _useEventListener } from './eventListener';
 import { _objectToFormData } from './formData';
+import { _hexToRgba } from './hexToRGBA';
 import { _authToken } from './storage';
 import { _extractURLParams, _IsJsonString } from './string';
 import { _secondToTime } from './time';
@@ -45,3 +46,4 @@ export { _usernameValidation as usernameValidation };
 export { _decimalValidation as decimalValidation };
 export { _objectToFormData as objectToFormData };
 export { _toPascalCase as toPascalCase };
+export { _hexToRgba as hexToRgba };

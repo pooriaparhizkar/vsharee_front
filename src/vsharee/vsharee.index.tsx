@@ -9,10 +9,14 @@ import { PATH } from '@/data';
 import { vshareeInitial } from './vsharee.script';
 import Authentication from './auth';
 import Dashboard from './dashboard';
+import { hexToRgba } from '@/scripts';
 
 const Vsharee: React.FC = () => {
     const [authStatus, setAuthStatus] = useAtom(authStatusAtom);
     const setUserData = useSetAtom(userDataAtom);
+    const primary = getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim();
+    const primaryWithOpacity = hexToRgba(primary, 0.6);
+
     useEffect(() => {
         vshareeInitial(setAuthStatus, setUserData);
 
@@ -21,7 +25,7 @@ const Vsharee: React.FC = () => {
 
         const animate = () => {
             angle = (angle + 0.5) % 360; // adjust increment for speed
-            body.style.background = `linear-gradient(${angle}deg, var(--color-primary), #3c0b10, var(--color-background))`;
+            body.style.background = `linear-gradient(${angle}deg, ${primaryWithOpacity}, #3c0b10, var(--color-background))`;
             requestAnimationFrame(animate);
         };
 

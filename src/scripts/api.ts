@@ -37,7 +37,7 @@ export function _del<R>(url: string): Promise<Response<R>> {
 }
 
 // post request
-export function _post<R>(url: string, body: any): Promise<Response<R>> {
+export function _post<R>(url: string, body: any, isNoToast?: boolean): Promise<Response<R>> {
     let status: number;
     return new Promise((resolve, reject) => {
         fetch(url, {
@@ -52,7 +52,7 @@ export function _post<R>(url: string, body: any): Promise<Response<R>> {
             .then(function (data) {
                 if (responseValidator(status)) resolve({ value: data, status });
                 else {
-                    handleErrors(data);
+                    if (!isNoToast) handleErrors(data);
                     reject({ data, status });
                 }
             })

@@ -12,6 +12,7 @@ import MenuList from '@mui/material/MenuList';
 import { FaRegUser } from 'react-icons/fa6';
 
 const Search: React.FC = () => {
+    const WIDTH = 200;
     const [search, setSearch] = useState<string>('');
     const [debouncedValue, setDebouncedValue] = useState('');
     const [typingLoading, setTypingLoading] = useState(false);
@@ -66,7 +67,7 @@ const Search: React.FC = () => {
                 setSearch('');
             }}
             content={
-                <div className="text-red border-primary bg-background/10 z-10 h-full w-[200px] rounded-b-sm border-2 border-t-0 backdrop-blur-lg">
+                <div className="text-red border-primary bg-background/10 z-10 h-full w-[300px] rounded-b-sm border-2 border-t-0 backdrop-blur-lg">
                     {result ? (
                         result.length !== 0 ? (
                             <MenuList>
@@ -94,7 +95,7 @@ const Search: React.FC = () => {
         >
             <Input
                 isFocus={isResultContainerOpen === true ? true : undefined}
-                className="max-w-[200px]"
+                className="max-w-[300px]"
                 label="Search"
                 value={search}
                 onChange={searchHandling}

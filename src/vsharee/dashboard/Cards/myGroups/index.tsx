@@ -1,24 +1,34 @@
-import { Card, Modal } from '@/utilities/components';
+import { Card } from '@/utilities/components';
 import { API } from '@/data';
 import { GroupType, Pagination } from '@/interfaces';
 import { useEffect, useState } from 'react';
 import { get } from '@/scripts';
 import Button from '@mui/material/Button';
-import Backdrop from '@mui/material/Backdrop';
+import CreateGroupModal from './modals/create';
+import Skeleton from '@mui/material/Skeleton';
 
 const DashboardMyGroupsCard: React.FC = () => {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [data, setData] = useState<GroupType[]>();
-    useEffect(() => {
+
+    function fetchData() {
+        setData(undefined);
         get<Pagination<GroupType>>(API.group.mine(1, 100))
             .then((res) => setData(res.value.value.data))
             .catch((e) => console.log(e));
+    }
+    useEffect(() => {
+        fetchData();
     }, []);
     return (
         <>
-            <Modal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} title="Create Group">
-                <h1>test</h1>
-            </Modal>
+            <CreateGroupModal
+                isOpen={isCreateModalOpen}
+                onClose={(needReFetch) => {
+                    setIsCreateModalOpen(false);
+                    needReFetch && fetchData();
+                }}
+            />
             <Card
                 className="max-w-[326px]"
                 extra={
@@ -28,12 +38,30 @@ const DashboardMyGroupsCard: React.FC = () => {
                 }
                 title="My Groups"
             >
-                <h1>My Groups</h1>
-                {data?.map((item, index) => (
-                    <div key={index} className="flex items-center gap-1">
-                        <h6>{item.name}</h6>
+                {data ? (
+                    data.length !== 0 ? (
+                        data.map((item, index) => (
+                            <div key={index} className="clickable flex items-center gap-1">
+                                <div className="flex h-10 items-center gap-4">
+                                    <h6>{item.name}</h6>
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        <div className="flex h-full w-full items-center justify-center">
+                            <p className="text-gray99 text-sm font-medium">No Data to Show!</p>
+                        </div>
+                    )
+                ) : (
+                    <div className="flex flex-col gap-4">
+                        <Skeleton variant="rounded" height={40} />
+                        <Skeleton variant="rounded" height={40} />
+                        <Skeleton variant="rounded" height={40} />
+                        <Skeleton variant="rounded" height={40} />
+                        <Skeleton variant="rounded" height={40} />
+                        <Skeleton variant="rounded" height={40} />
                     </div>
-                ))}
+                )}
             </Card>
         </>
     );
