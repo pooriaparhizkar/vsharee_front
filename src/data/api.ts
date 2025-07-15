@@ -12,6 +12,7 @@ export const API = {
     },
     group: {
         index: BASE_URL + '/group',
+        detail: (id: string) => `${API.group.index}/${id}`,
         getAll: (page: number, pageSize: number) => `${API.group.index}/${page}/${pageSize}`,
         mine: (page: number, pageSize: number) => `${API.group.index}/mine/${page}/${pageSize}`,
         verifyId: BASE_URL + '/group/verify-id',

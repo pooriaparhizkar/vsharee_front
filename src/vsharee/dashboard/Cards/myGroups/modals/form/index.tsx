@@ -1,27 +1,50 @@
 import { Input, Modal } from '@/utilities/components';
-import { useEffect, useState } from 'react';
-import { CreateGroupModalType } from './type';
+import { useEffect, useRef, useState } from 'react';
+import { FormGroupModalType } from './type';
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
-import { get, post } from '@/scripts';
+import { get, post, put } from '@/scripts';
 import { API } from '@/data';
 import { toast } from 'react-toastify';
 
-const CreateGroupModal: React.FC<CreateGroupModalType> = (props: CreateGroupModalType) => {
-    const [id, setId] = useState<string>('');
-    const [name, setName] = useState<string>();
-    const [description, setDescription] = useState<string>();
+const FormGroupModal: React.FC<FormGroupModalType> = (props: FormGroupModalType) => {
+    const [id, setId] = useState<string>(props.selectedGroup?.id ?? '');
+    const [name, setName] = useState<string | undefined>(props.selectedGroup?.name);
+    const [description, setDescription] = useState<string | undefined>(props.selectedGroup?.description);
     const [verifyingIdLoading, setVerifyingLoading] = useState(false);
     const [debouncedValue, setDebouncedValue] = useState('');
     const [isIdExist, setIsIdExist] = useState(false);
     const [submitLoading, setSubmitLoading] = useState(false);
+    const isUnchangedInputRef = useRef<boolean>(false);
+
+    function resetValue() {
+        setId('');
+        setName(undefined);
+        setDescription(undefined);
+        setVerifyingLoading(false);
+        setDebouncedValue('');
+        setIsIdExist(false);
+        setSubmitLoading(false);
+    }
+
+    useEffect(() => {
+        if (props.selectedGroup) {
+            setId(props.selectedGroup.id);
+            setName(props.selectedGroup.name);
+            setDescription(props.selectedGroup.description);
+            isUnchangedInputRef.current = true;
+        }
+    }, [props.selectedGroup]);
+
     const changeIdHandler = (value: string) => {
-        setVerifyingLoading(true);
+        isUnchangedInputRef.current = value === props.selectedGroup?.id;
+        setVerifyingLoading(value !== props.selectedGroup?.id);
         setId(value);
     };
 
     // Debounce logic
     useEffect(() => {
+        if (isUnchangedInputRef.current) return;
         if (id?.trim() === '') {
             setVerifyingLoading(false);
             setDebouncedValue('');
@@ -49,19 +72,32 @@ const CreateGroupModal: React.FC<CreateGroupModalType> = (props: CreateGroupModa
             .catch((e) => setIsIdExist(true));
     }
 
-    function createGroupHandler() {
+    function submitHandler() {
         setSubmitLoading(true);
         const body = { id, name, description };
-        post(API.group.index, body)
-            .then(() => {
-                toast.success(`Your Group has been created successfully`);
-                props.onClose(true);
-            })
-            .catch((e) => console.log(e));
+        if (props.selectedGroup)
+            put(API.group.detail(props.selectedGroup.id), body)
+                .then(() => {
+                    toast.success(`Your Group has been modified successfully`);
+                    closeModal(true);
+                })
+                .catch((e) => console.log(e));
+        else
+            post(API.group.index, body)
+                .then(() => {
+                    toast.success(`Your Group has been created successfully`);
+                    closeModal(true);
+                })
+                .catch((e) => console.log(e));
+    }
+
+    function closeModal(needRefetch?: boolean) {
+        props.onClose(needRefetch);
+        resetValue();
     }
 
     return (
-        <Modal isOpen={props.isOpen} onClose={props.onClose} title="Create Group">
+        <Modal isOpen={props.isOpen} onClose={() => closeModal()} title="Create Group">
             <div className="flex flex-col gap-4">
                 <Input
                     required
@@ -71,6 +107,11 @@ const CreateGroupModal: React.FC<CreateGroupModalType> = (props: CreateGroupModa
                     endIcon={verifyingIdLoading && <CircularProgress size={16} />}
                     error={isIdExist}
                     helperText={isIdExist ? 'This ID is in used' : undefined}
+                    sx={{
+                        '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                            borderColor: isIdExist ? '#eb3942' : 'green',
+                        },
+                    }}
                 />
 
                 <Input required label="Name" onChange={(e) => setName(e)} value={name} />
@@ -81,12 +122,12 @@ const CreateGroupModal: React.FC<CreateGroupModalType> = (props: CreateGroupModa
                         size="large"
                         className="flex-2"
                         variant="contained"
-                        onClick={createGroupHandler}
+                        onClick={submitHandler}
                         loading={submitLoading}
                     >
                         Create
                     </Button>
-                    <Button size="large" className="flex-1" variant="text">
+                    <Button onClick={() => closeModal()} size="large" className="flex-1" variant="text">
                         Cancel
                     </Button>
                 </div>
@@ -95,4 +136,4 @@ const CreateGroupModal: React.FC<CreateGroupModalType> = (props: CreateGroupModa
     );
 };
 
-export default CreateGroupModal;
+export default FormGroupModal;

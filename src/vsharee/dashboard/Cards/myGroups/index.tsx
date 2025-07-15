@@ -1,15 +1,18 @@
 import { Card } from '@/utilities/components';
-import { API } from '@/data';
+import { API, PATH } from '@/data';
 import { GroupType, Pagination } from '@/interfaces';
 import { useEffect, useState } from 'react';
 import { get } from '@/scripts';
 import Button from '@mui/material/Button';
-import CreateGroupModal from './modals/create';
+import FormGroupModal from './modals/form';
 import Skeleton from '@mui/material/Skeleton';
+import { Link } from 'react-router-dom';
+import { MdEditNote } from 'react-icons/md';
 
 const DashboardMyGroupsCard: React.FC = () => {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [data, setData] = useState<GroupType[]>();
+    const [selectedGroup, setSelectedGroup] = useState<GroupType>();
 
     function fetchData() {
         setData(undefined);
@@ -22,12 +25,14 @@ const DashboardMyGroupsCard: React.FC = () => {
     }, []);
     return (
         <>
-            <CreateGroupModal
+            <FormGroupModal
                 isOpen={isCreateModalOpen}
                 onClose={(needReFetch) => {
                     setIsCreateModalOpen(false);
+                    setSelectedGroup(undefined);
                     needReFetch && fetchData();
                 }}
+                selectedGroup={selectedGroup}
             />
             <Card
                 className="max-w-[326px]"
@@ -41,10 +46,18 @@ const DashboardMyGroupsCard: React.FC = () => {
                 {data ? (
                     data.length !== 0 ? (
                         data.map((item, index) => (
-                            <div key={index} className="clickable flex items-center gap-1">
-                                <div className="flex h-10 items-center gap-4">
-                                    <h6 className="text-md flex-1 font-light">{item.name}</h6>
-                                </div>
+                            <div key={index} className="flex h-10 items-center gap-1">
+                                <Link className="flex-1" to={PATH.group(item.id)}>
+                                    <h6 className="text-md clickable font-light">{item.name}</h6>
+                                </Link>
+                                <MdEditNote
+                                    onClick={() => {
+                                        setSelectedGroup(item);
+                                        setIsCreateModalOpen(true);
+                                    }}
+                                    className="clickable"
+                                    size={24}
+                                />
                             </div>
                         ))
                     ) : (

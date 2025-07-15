@@ -10,6 +10,7 @@ import { vshareeInitial } from './vsharee.script';
 import Authentication from './auth';
 import Dashboard from './dashboard';
 import { hexToRgba } from '@/scripts';
+import Group from './group';
 
 const Vsharee: React.FC = () => {
     const [authStatus, setAuthStatus] = useAtom(authStatusAtom);
@@ -48,6 +49,7 @@ const Vsharee: React.FC = () => {
                                 >
                                     <Routes>
                                         <Route path={PATH.dashboard} element={<Dashboard />} />
+                                        <Route path={PATH.group(':id')} element={<Group />} />
 
                                         <Route path="*" element={<Navigate to={PATH.dashboard} replace />} />
                                     </Routes>
