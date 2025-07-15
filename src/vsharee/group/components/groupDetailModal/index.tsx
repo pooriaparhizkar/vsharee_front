@@ -22,7 +22,7 @@ const GroupDetailModal: React.FC<GroupDetailModalProps> = (props: GroupDetailMod
                 )}
                 <Divider />
                 {props.groupData?.members && props.groupData?.members.length !== 0 && (
-                    <div className="flex flex-col gap-2">
+                    <div className="flex max-h-[400px] flex-col gap-2 overflow-auto">
                         <label className="text-md font-light">Members: </label>
                         {props.groupData.members.map((item) => (
                             <div key={item.id} className="flex items-center gap-2">

@@ -4,7 +4,7 @@ import { SocketContext } from '@/context/SocketContext';
 const SocketStatus: React.FC = () => {
     const socket = useContext(SocketContext);
 
-    const [heartbeatStatus, setHeartbeatStatus] = useState<'green' | 'orange' | 'red'>('green');
+    const [heartbeatStatus, setHeartbeatStatus] = useState<'green' | 'orange' | 'red' | 'gray'>('green');
     const [pulse, setPulse] = useState(false);
 
     useEffect(() => {
@@ -14,7 +14,9 @@ const SocketStatus: React.FC = () => {
             socket?.emit('heartbeat');
 
             const diff = Date.now() - lastAck;
-            if (diff > 2 * 60 * 1000) {
+            if (diff > 10 * 60 * 1000) {
+                setHeartbeatStatus('gray');
+            } else if (diff > 2 * 60 * 1000) {
                 setHeartbeatStatus('red');
             } else if (diff > 30 * 1000) {
                 setHeartbeatStatus('orange');
@@ -43,7 +45,9 @@ const SocketStatus: React.FC = () => {
                     ? 'bg-green-500'
                     : heartbeatStatus === 'orange'
                       ? 'bg-orange-400'
-                      : 'bg-red-500'
+                      : heartbeatStatus === 'gray'
+                        ? 'bg-gray-500'
+                        : 'bg-red-500'
             } ${pulse ? 'scale-150' : 'scale-100'}`}
         ></span>
     );
