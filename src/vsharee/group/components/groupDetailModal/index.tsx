@@ -1,6 +1,7 @@
 import { Modal } from '@/utilities/components';
 import { GroupDetailModalProps } from './type';
 import Divider from '@mui/material/Divider';
+import Tooltip from '@mui/material/Tooltip';
 
 const GroupDetailModal: React.FC<GroupDetailModalProps> = (props: GroupDetailModalProps) => {
     return (
@@ -27,6 +28,11 @@ const GroupDetailModal: React.FC<GroupDetailModalProps> = (props: GroupDetailMod
                         {props.groupData.members.map((item) => (
                             <div key={item.id} className="flex items-center gap-2">
                                 <span> - </span>
+                                {props.onlineMembers?.some((onlineMember) => onlineMember.id === item.id) && (
+                                    <Tooltip title="Online">
+                                        <div className="h-2 w-2 rounded-full bg-green-500" />
+                                    </Tooltip>
+                                )}
                                 <h6 className="text-md font-medium">{item.name}</h6>
                                 <p className="text-gray99 text-sm font-light">{item.email}</p>
                             </div>

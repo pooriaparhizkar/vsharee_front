@@ -6,4 +6,5 @@ export interface CardProps {
     style?: CSSProperties;
     children: ReactNode;
     extra?: ReactNode;
+    onClick?: () => void;
 }

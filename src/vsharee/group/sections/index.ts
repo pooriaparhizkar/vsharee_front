@@ -1,4 +1,4 @@
+import GroupChatCard from './chat';
 import GroupInfoCard from './groupInfo';
-import OnlineMembersCard from './onlineMembers';
 
-export { GroupInfoCard, OnlineMembersCard };
+export { GroupInfoCard, GroupChatCard };

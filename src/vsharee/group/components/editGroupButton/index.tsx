@@ -76,7 +76,7 @@ export default function EditGroupButton(props: EditGroupButtonProps) {
     }
 
     return (
-        <div>
+        <div onClick={props.onClick}>
             <FormGroupModal
                 isOpen={!!editGroupModal}
                 onClose={(needReFetch) => {
@@ -98,7 +98,7 @@ export default function EditGroupButton(props: EditGroupButtonProps) {
                 }}
                 groupData={addMemberModal}
             />
-            <IconButton loading={!props.groupData} onClick={handleClick}>
+            <IconButton size="small" loading={!props.groupData} onClick={handleClick}>
                 <MdMoreVert />
             </IconButton>
             <Menu anchorEl={anchorEl} open={open} onClose={handleClose}>

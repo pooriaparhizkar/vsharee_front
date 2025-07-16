@@ -16,5 +16,7 @@ export const API = {
         getAll: (page: number, pageSize: number) => `${API.group.index}/${page}/${pageSize}`,
         mine: (page: number, pageSize: number) => `${API.group.index}/mine/${page}/${pageSize}`,
         verifyId: BASE_URL + '/group/verify-id',
+        messages: (id: string, page: number, pageSize: number) =>
+            `${API.group.detail(id)}/messages/${page}/${pageSize}`,
     },
 };

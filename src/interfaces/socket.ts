@@ -1,12 +1,21 @@
+export interface __SocketUserType {
+    id: string;
+    name: string;
+}
+
+export interface __SocketMessageType {
+    message: string;
+    user: __SocketUserType;
+}
 export interface __ServerToClientEvents {
     connect: () => void;
-    joinedGroup: (data: { onlineMembers: { id: string; name: string }[] }) => void;
-    userJoined: (data: { id: string; name: string }) => void;
-    newMessage: (data: any) => void;
+    joinedGroup: (data: { onlineMembers: __SocketUserType[] }) => void;
+    userJoined: (data: __SocketUserType) => void;
+    newMessage: (data: __SocketMessageType) => void;
     messageSent: (data: any) => void;
     syncVideo: (data: any) => void;
     error: (err: any) => void;
-    userLeft: (data: { id: string; name: string }) => void;
+    userLeft: (data: __SocketUserType) => void;
     heartbeat_ack: (data: any) => void;
 }
 

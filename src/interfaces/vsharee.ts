@@ -1,3 +1,5 @@
+import { __SocketUserType } from './socket';
+
 export interface __GroupType {
     id: string;
     name: string;
@@ -18,4 +20,11 @@ export interface __UserType {
 export interface __loginType {
     token: string;
     user: __UserType;
+}
+
+export interface __MessageType {
+    id: string;
+    text: string;
+    sender: __SocketUserType;
+    createdAt: string;
 }

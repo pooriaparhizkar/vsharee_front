@@ -25,6 +25,16 @@ body {
     background: linear-gradient(0deg, var(--color-primary), #3c0b10, var(--color-background));
 }
 
+html,
+body,
+#root {
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    /* prevents full-page scroll */
+}
+
 h1,
 h2,
 h3,

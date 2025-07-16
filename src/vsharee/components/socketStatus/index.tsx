@@ -4,7 +4,7 @@ import { SocketContext } from '@/context/SocketContext';
 const SocketStatus: React.FC = () => {
     const socket = useContext(SocketContext);
 
-    const [heartbeatStatus, setHeartbeatStatus] = useState<'green' | 'orange' | 'red' | 'gray'>('green');
+    const [heartbeatStatus, setHeartbeatStatus] = useState<'green' | 'orange' | 'red' | 'gray'>('gray');
     const [pulse, setPulse] = useState(false);
 
     useEffect(() => {
