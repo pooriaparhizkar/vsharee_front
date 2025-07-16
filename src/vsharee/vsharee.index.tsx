@@ -30,7 +30,7 @@ const Vsharee: React.FC = () => {
             requestAnimationFrame(animate);
         };
 
-        animate();
+        // animate();
     }, []);
 
     return (

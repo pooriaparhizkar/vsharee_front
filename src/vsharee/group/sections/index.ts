@@ -1,3 +1,4 @@
 import GroupInfoCard from './groupInfo';
+import OnlineMembersCard from './onlineMembers';
 
-export { GroupInfoCard };
+export { GroupInfoCard, OnlineMembersCard };

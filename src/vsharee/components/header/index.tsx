@@ -39,15 +39,8 @@ const Header: React.FC = () => {
             socket?.emit('heartbeat');
         }, 5000); // every 5 seconds
 
-        const handleAck = () => {
-            console.log('✅ Heartbeat acknowledged');
-        };
-
-        socket?.on('heartbeat_ack', handleAck);
-
         return () => {
             clearInterval(interval);
-            socket?.off('heartbeat_ack', handleAck);
         };
     }, []);
 

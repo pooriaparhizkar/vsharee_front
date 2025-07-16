@@ -1,16 +1,14 @@
 import { useParams } from 'react-router-dom';
-import { useContext, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { get } from '@/scripts';
 import { API } from '@/data';
 import { GroupType } from '@/interfaces';
 import GroupSkeleton from './skeleton';
-import { SocketContext } from '@/context/SocketContext';
-import { GroupInfoCard } from './sections';
+import MainGroupComponent from './main';
 
 const Group: React.FC = () => {
     const { id } = useParams();
     const [groupData, setGroupData] = useState<GroupType | null>();
-    const socket = useContext(SocketContext);
 
     function fetchGroupData() {
         if (id) {
@@ -22,26 +20,14 @@ const Group: React.FC = () => {
         }
     }
     useEffect(() => {
-        if (id) {
-            fetchGroupData();
-            socket.emit('joinGroup', { groupId: id });
-        }
-
-        socket.on('joinedGroup', (res) => console.log(res));
+        if (id) fetchGroupData();
     }, [id]);
 
-    useEffect(() => {
-        return () => {
-            socket.emit('leftGroup', { groupId: id });
-        };
-    }, []);
     return (
-        <div className="flex w-full justify-center">
-            <div className="mx-auto w-full max-w-[1300px]">
+        <div className="flex h-full w-full flex-1 flex-col justify-center">
+            <div className="mx-auto flex h-full w-full max-w-[1300px] flex-1 flex-col">
                 {groupData !== undefined ? (
-                    <div>
-                        <GroupInfoCard fetch={fetchGroupData} groupData={groupData} />
-                    </div>
+                    <MainGroupComponent fetch={fetchGroupData} groupData={groupData} />
                 ) : (
                     <GroupSkeleton />
                 )}
