@@ -17,6 +17,10 @@ export interface __ServerToClientEvents {
     error: (err: any) => void;
     userLeft: (data: __SocketUserType) => void;
     heartbeat_ack: (data: any) => void;
+    videoStream: (data: { videoData: string; user: __SocketUserType }) => void;
+    videoOffer: (data: { offer: RTCSessionDescriptionInit }) => void;
+    videoAnswer: (data: { answer: RTCSessionDescriptionInit }) => void;
+    iceCandidate: (data: { candidate: RTCIceCandidateInit }) => void;
 }
 
 export interface __ClientToServerEvents {
@@ -25,4 +29,8 @@ export interface __ClientToServerEvents {
     videoControl: (data: { groupId: string; action: any }) => void;
     leftGroup: (data: any) => void;
     heartbeat: () => void;
+    videoSelected: (data: { groupId: string; videoData: string; user: __SocketUserType }) => void;
+    videoOffer: (data: { offer: RTCSessionDescriptionInit; groupId: string }) => void;
+    videoAnswer: (data: { answer: RTCSessionDescriptionInit; groupId: string }) => void;
+    iceCandidate: (data: { candidate: RTCIceCandidateInit; groupId: string }) => void;
 }

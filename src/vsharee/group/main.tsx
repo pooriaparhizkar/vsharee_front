@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { GroupType } from '@/interfaces';
-import { GroupChatCard, GroupInfoCard } from './sections';
-import { Card } from '@/utilities/components';
+import { GroupChatCard, GroupInfoCard, GroupVideoPlayer } from './sections';
 
 interface MainGroupComponentProps {
     fetch: () => void;
@@ -17,9 +16,7 @@ const MainGroupComponent: React.FC<MainGroupComponentProps> = (props: MainGroupC
         <div className="flex h-full flex-1 flex-col gap-4 overflow-hidden">
             <GroupInfoCard fetch={props.fetch} groupData={groupData} />
             <div className="flex h-full flex-1 gap-4 overflow-hidden">
-                <Card className="flex-1 bg-black">
-                    <h1>Video Player</h1>
-                </Card>
+                <GroupVideoPlayer />
                 <GroupChatCard />
             </div>
         </div>

@@ -92,17 +92,6 @@ const GroupChatCard: React.FC = () => {
                             setNewMessage(e);
                             newMessageRef.current = e;
                         }}
-                        // sx={{
-                        //     '& input': {
-                        //         fontSize: '12px',
-                        //     },
-                        //     '& input::placeholder': {
-                        //         fontSize: '12px',
-                        //     },
-                        //     '& .MuiFormLabel-root': {
-                        //         fontSize: '12px',
-                        //     },
-                        // }}
                     />
                     <IconButton loading={sendingLoading} disabled={!id} onClick={sendMessageHandler}>
                         <MdSend />
