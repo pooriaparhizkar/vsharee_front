@@ -15,6 +15,8 @@ const GroupVideoPlayer: React.FC = () => {
     const localVideoRef = useRef<HTMLVideoElement | null>(null);
     const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
     const peerConnection = useRef<RTCPeerConnection | null>(null);
+    let pendingRemoteAnswer: RTCSessionDescriptionInit | null = null;
+    const remoteDescriptionSet = useRef(false);
 
     const triggerFileSelect = () => {
         fileInputRef.current?.click();
@@ -63,6 +65,12 @@ const GroupVideoPlayer: React.FC = () => {
             };
 
             await peerConnection.current.setRemoteDescription(new RTCSessionDescription(offer));
+            remoteDescriptionSet.current = true;
+            if (pendingRemoteAnswer) {
+                console.log('Applying stored answer after remote offer set');
+                await peerConnection.current.setRemoteDescription(new RTCSessionDescription(pendingRemoteAnswer));
+                pendingRemoteAnswer = null;
+            }
             console.log('Remote description set. Receivers:', peerConnection.current.getReceivers());
             const answer = await peerConnection.current.createAnswer();
             await peerConnection.current.setLocalDescription(answer);
@@ -75,12 +83,13 @@ const GroupVideoPlayer: React.FC = () => {
         socket.on('videoAnswer', async ({ answer }) => {
             console.log('Received videoAnswer');
             if (peerConnection.current?.signalingState === 'have-local-offer') {
+                console.log('Setting remote description with answer');
                 await peerConnection.current.setRemoteDescription(new RTCSessionDescription(answer));
+            } else if (peerConnection.current?.signalingState === 'stable') {
+                console.warn('Already in stable state, ignoring duplicate answer');
             } else {
-                console.warn(
-                    'Ignoring videoAnswer: unexpected signaling state',
-                    peerConnection.current?.signalingState,
-                );
+                console.warn('Signaling not ready. Storing answer for later');
+                pendingRemoteAnswer = answer;
             }
         });
 
@@ -117,6 +126,23 @@ const GroupVideoPlayer: React.FC = () => {
 
         const offer = await peerConnection.current.createOffer();
         await peerConnection.current.setLocalDescription(offer);
+
+        peerConnection.current.onsignalingstatechange = async () => {
+            if (peerConnection.current?.signalingState === 'have-local-offer' && pendingRemoteAnswer) {
+                console.log('Applying pending remote answer');
+                await peerConnection.current.setRemoteDescription(new RTCSessionDescription(pendingRemoteAnswer));
+                pendingRemoteAnswer = null;
+            }
+        };
+
+        setTimeout(async () => {
+            if (peerConnection.current?.signalingState === 'have-local-offer' && pendingRemoteAnswer) {
+                console.log('Fallback: applying delayed remote answer');
+                await peerConnection.current.setRemoteDescription(new RTCSessionDescription(pendingRemoteAnswer));
+                pendingRemoteAnswer = null;
+            }
+        }, 500);
+
         console.log('Emitting videoOffer with SDP');
         socket.emit('videoOffer', {
             offer,
@@ -177,10 +203,17 @@ const GroupVideoPlayer: React.FC = () => {
                                 ref={remoteVideoRef}
                                 autoPlay
                                 playsInline
-                                muted
+                                // muted
                                 controls
                                 className="absolute top-0 left-0 h-full w-full"
                             />
+                            <Button
+                                variant="outlined"
+                                onClick={() => remoteVideoRef.current?.play()}
+                                className="absolute right-2 bottom-2 z-10"
+                            >
+                                Tap to play video
+                            </Button>
                         </div>
                     </>
                 )}

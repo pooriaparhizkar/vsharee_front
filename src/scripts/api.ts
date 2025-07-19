@@ -169,6 +169,7 @@ export function _patch<R>(url: string, body: any): Promise<Response<R>> {
 
 // get request
 export function _get<R>(url: string, params: { [k: string]: any } = {}): Promise<Response<R>> {
+    console.log(url);
     const generatedUrl = new URL(url);
     // add query parameters like filters or pagination parameters
     Object.keys(params).forEach((key) => {
