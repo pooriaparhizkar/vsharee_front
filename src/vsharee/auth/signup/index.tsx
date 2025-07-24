@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import { authToken, emailValidation, passwordValidation, post } from '@/scripts';
@@ -7,6 +7,8 @@ import { AuthStatus, loginType } from '@/interfaces';
 import { useSetAtom } from 'jotai';
 import { authStatusAtom, userDataAtom } from '@/atom';
 import { Input } from '@/utilities/components';
+import { createSocket } from '@/context/SocketContext';
+import { SocketSetterContext } from '@/App';
 
 const nameValidation = (name: string) => name.trim().length > 1;
 
@@ -20,6 +22,7 @@ const Signup: React.FC = () => {
     const [passwordError, setPasswordError] = React.useState('');
     const setUserData = useSetAtom(userDataAtom);
     const setAuthStatus = useSetAtom(authStatusAtom);
+    const setSocketInstance = useContext(SocketSetterContext);
 
     const handleSubmit = (e?: any) => {
         if (e) e.preventDefault();
@@ -55,6 +58,8 @@ const Signup: React.FC = () => {
                 authToken.set(token);
                 setUserData(user);
                 setAuthStatus(AuthStatus.valid);
+                const newSocket = createSocket(token);
+                setSocketInstance(newSocket);
             })
             .catch((err) => console.error(err))
             .finally(() => setSubmitLoading(false));

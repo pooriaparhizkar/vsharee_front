@@ -5,6 +5,7 @@
 
 html {
     scroll-behavior: smooth;
+    background-color: references.$background !important;
 }
 
 body {
@@ -13,7 +14,6 @@ body {
     overflow-x: hidden;
     direction: ltr;
     box-sizing: border-box;
-    background-color: references.$background !important;
 
     #root {
         overflow: hidden;

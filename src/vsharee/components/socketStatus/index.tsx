@@ -10,6 +10,8 @@ const SocketStatus: React.FC = () => {
     useEffect(() => {
         let lastAck = Date.now();
 
+        socket?.emit('heartbeat');
+
         const interval = setInterval(() => {
             socket?.emit('heartbeat');
 

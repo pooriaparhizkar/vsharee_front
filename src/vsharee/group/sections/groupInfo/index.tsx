@@ -19,17 +19,17 @@ const GroupInfoCard: React.FC<GroupInfoCardProps> = (props: GroupInfoCardProps) 
 
     useEffect(() => {
         if (id) {
-            socket.emit('joinGroup', { groupId: id });
+            socket?.emit('joinGroup', { groupId: id });
         }
-        socket.on('joinedGroup', (res) => setOnlineMembers(res.onlineMembers));
-        socket.on('userJoined', (res) => {
+        socket?.on('joinedGroup', (res) => setOnlineMembers(res.onlineMembers));
+        socket?.on('userJoined', (res) => {
             setOnlineMembers((prev) => [...(prev || []), res]);
         });
-        socket.on('userLeft', (res) => {
+        socket?.on('userLeft', (res) => {
             setOnlineMembers((prev) => prev?.filter((item) => item.id !== res.id));
         });
         return () => {
-            socket.emit('leftGroup', { groupId: id });
+            socket?.emit('leftGroup', { groupId: id });
         };
     }, [id]);
 

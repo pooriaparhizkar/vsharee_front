@@ -33,7 +33,7 @@ const GroupChatCard: React.FC = () => {
     }
     useEffect(() => {
         fetchInitialMessages();
-        socket.on('newMessage', (res) => {
+        socket?.on('newMessage', (res) => {
             setMessages((prev) => [...(prev || []), res]);
             if (res.user.id === userData?.id && newMessageRef.current === res.message) {
                 setSendingLoading(false);
@@ -52,7 +52,7 @@ const GroupChatCard: React.FC = () => {
     function sendMessageHandler() {
         setSendingLoading(true);
         if (id) {
-            socket.emit('sendMessage', { groupId: id, message: newMessage });
+            socket?.emit('sendMessage', { groupId: id, message: newMessage });
         }
     }
 

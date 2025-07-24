@@ -23,13 +23,13 @@ const GroupVideoPlayer: React.FC = () => {
     };
 
     useEffect(() => {
-        socket.on('videoOffer', async ({ offer }) => {
+        socket?.on('videoOffer', async ({ offer }) => {
             console.log('Received videoOffer');
             peerConnection.current = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
 
             peerConnection.current.onicecandidate = (event) => {
                 if (event.candidate) {
-                    socket.emit('iceCandidate', {
+                    socket?.emit('iceCandidate', {
                         candidate: event.candidate,
                         groupId: id!,
                     });
@@ -74,13 +74,13 @@ const GroupVideoPlayer: React.FC = () => {
             console.log('Remote description set. Receivers:', peerConnection.current.getReceivers());
             const answer = await peerConnection.current.createAnswer();
             await peerConnection.current.setLocalDescription(answer);
-            socket.emit('videoAnswer', {
+            socket?.emit('videoAnswer', {
                 answer,
                 groupId: id!,
             });
         });
 
-        socket.on('videoAnswer', async ({ answer }) => {
+        socket?.on('videoAnswer', async ({ answer }) => {
             console.log('Received videoAnswer');
             if (peerConnection.current?.signalingState === 'have-local-offer') {
                 console.log('Setting remote description with answer');
@@ -93,15 +93,15 @@ const GroupVideoPlayer: React.FC = () => {
             }
         });
 
-        socket.on('iceCandidate', async ({ candidate }) => {
+        socket?.on('iceCandidate', async ({ candidate }) => {
             console.log('Received iceCandidate');
             await peerConnection.current?.addIceCandidate(new RTCIceCandidate(candidate));
         });
 
         return () => {
-            socket.off('videoOffer');
-            socket.off('videoAnswer');
-            socket.off('iceCandidate');
+            socket?.off('videoOffer');
+            socket?.off('videoAnswer');
+            socket?.off('iceCandidate');
         };
     }, []);
 
@@ -112,7 +112,7 @@ const GroupVideoPlayer: React.FC = () => {
         peerConnection.current.onicecandidate = (event) => {
             if (event.candidate) {
                 console.log('Emitting ICE candidate');
-                socket.emit('iceCandidate', {
+                socket?.emit('iceCandidate', {
                     candidate: event.candidate,
                     groupId: id!,
                 });
@@ -144,7 +144,7 @@ const GroupVideoPlayer: React.FC = () => {
         }, 500);
 
         console.log('Emitting videoOffer with SDP');
-        socket.emit('videoOffer', {
+        socket?.emit('videoOffer', {
             offer,
             groupId: id!,
         });

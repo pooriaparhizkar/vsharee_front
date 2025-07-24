@@ -1,26 +1,22 @@
-import { useContext, useEffect } from 'react';
+import { useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { AuthStatus } from '../interfaces';
 import InitialLoading from './initialLoading/initialLoading.index';
-import { useAtom, useSetAtom } from 'jotai';
-import { authStatusAtom, userDataAtom } from '@/atom';
+import { useAtomValue } from 'jotai';
+import { authStatusAtom } from '@/atom';
 import Header from './components/header';
 import { PATH } from '@/data';
-import { vshareeInitial } from './vsharee.script';
 import Authentication from './auth';
 import Dashboard from './dashboard';
 import { hexToRgba } from '@/scripts';
 import Group from './group';
 
 const Vsharee: React.FC = () => {
-    const [authStatus, setAuthStatus] = useAtom(authStatusAtom);
-    const setUserData = useSetAtom(userDataAtom);
+    const authStatus = useAtomValue(authStatusAtom);
     const primary = getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim();
     const primaryWithOpacity = hexToRgba(primary, 0.6);
 
     useEffect(() => {
-        vshareeInitial(setAuthStatus, setUserData);
-
         let angle = 0;
         const body = document.body;
 
