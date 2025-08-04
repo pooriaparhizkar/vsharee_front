@@ -30,7 +30,7 @@ export default function EditGroupButton(props: EditGroupButtonProps) {
             icon: MdEdit,
         },
         {
-            label: 'Add Member',
+            label: 'Manage Members',
             key: EditGroupOptions.addMember,
             icon: MdGroupAdd,
         },

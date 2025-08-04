@@ -18,5 +18,6 @@ export const API = {
         verifyId: BASE_URL + '/group/verify-id',
         messages: (id: string, page: number, pageSize: number) =>
             `${API.group.detail(id)}/messages/${page}/${pageSize}`,
+        members: (id: string) => `${API.group.detail(id)}/members`,
     },
 };

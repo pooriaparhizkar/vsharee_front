@@ -1,7 +1,7 @@
 import { __Pagination, __Response } from './general';
 import { __AuthStatus } from './register';
 import { __ClientToServerEvents, __ServerToClientEvents, __SocketMessageType, __SocketUserType } from './socket';
-import { __GroupType, __loginType, __MessageType, __UserType } from './vsharee';
+import { __GroupMembersType, __GroupRoleEnum, __GroupType, __loginType, __MessageType, __UserType } from './vsharee';
 
 export interface Pagination<T> extends __Pagination<T> {}
 export interface Response<T> extends __Response<T> {}
@@ -13,4 +13,6 @@ export interface ClientToServerEvents extends __ClientToServerEvents {}
 export interface SocketUserType extends __SocketUserType {}
 export interface SocketMessageType extends __SocketMessageType {}
 export interface MessageType extends __MessageType {}
+export interface GroupMembersType extends __GroupMembersType {}
 export { __AuthStatus as AuthStatus };
+export { __GroupRoleEnum as GroupRoleEnum };

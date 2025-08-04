@@ -1,10 +1,12 @@
 import { Card } from '@/utilities/components';
 import { useContext, useEffect, useState } from 'react';
-import { GroupType, SocketUserType } from '@/interfaces';
+import { GroupRoleEnum, GroupType, SocketUserType } from '@/interfaces';
 import { GroupInfoCardProps } from './type';
 import { GroupDetailModal, EditGroupButton } from '@/vsharee/group/components';
 import { SocketContext } from '@/context/SocketContext';
 import { useParams } from 'react-router-dom';
+import { userDataAtom } from '@/atom';
+import { useAtomValue } from 'jotai';
 
 const GroupInfoCard: React.FC<GroupInfoCardProps> = (props: GroupInfoCardProps) => {
     const [groupData, setGroupData] = useState<GroupType>();
@@ -12,6 +14,7 @@ const GroupInfoCard: React.FC<GroupInfoCardProps> = (props: GroupInfoCardProps) 
     const socket = useContext(SocketContext);
     const { id } = useParams();
     const [onlineMembers, setOnlineMembers] = useState<SocketUserType[]>();
+    const userData = useAtomValue(userDataAtom);
 
     useEffect(() => {
         if (props.groupData) setGroupData(props.groupData);
@@ -44,14 +47,17 @@ const GroupInfoCard: React.FC<GroupInfoCardProps> = (props: GroupInfoCardProps) 
                             <span className="flex-1" />
                         </div>
 
-                        <EditGroupButton
-                            onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                            }}
-                            groupData={groupData}
-                            reFetch={props.fetch}
-                        />
+                        {props.groupData?.members.find((item) => item.role === GroupRoleEnum.CREATOR)?.user?.id ===
+                            userData?.id && (
+                            <EditGroupButton
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                }}
+                                groupData={groupData}
+                                reFetch={props.fetch}
+                            />
+                        )}
                     </div>
                     {groupData?.description && (
                         <p className="text-gray99 text-md font-light">{groupData?.description}</p>

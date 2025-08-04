@@ -1,13 +1,16 @@
 import { __SocketUserType } from './socket';
 
+export interface __GroupMembersType {
+    role: __GroupRoleEnum;
+    user?: __UserType;
+}
+
 export interface __GroupType {
+    createdAt: string;
     id: string;
     name: string;
     description?: string;
-    createdAt: string;
-    creatorId: string;
-    creator: __UserType;
-    members: __UserType[];
+    members: __GroupMembersType[];
 }
 export interface __UserType {
     id: string;
@@ -27,4 +30,10 @@ export interface __MessageType {
     text: string;
     sender: __SocketUserType;
     createdAt: string;
+}
+
+export enum __GroupRoleEnum {
+    CREATOR = 'CREATOR',
+    CONTROLLER = 'CONTROLLER',
+    MEMBER = 'MEMBER',
 }
