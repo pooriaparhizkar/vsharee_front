@@ -2,11 +2,14 @@ import { Card } from '@/utilities/components';
 import { SocketContext } from '@/context/SocketContext';
 import { useContext, useState, useRef, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import Button from '@mui/material/Button';
+import { GroupRoleEnum, GroupType } from '@/interfaces';
+import { GroupVideoPlayerProps } from './type';
 import { useAtomValue } from 'jotai';
 import { userDataAtom } from '@/atom';
-import Button from '@mui/material/Button';
 
-const GroupVideoPlayer: React.FC = () => {
+const GroupVideoPlayer: React.FC<GroupVideoPlayerProps> = (props: GroupVideoPlayerProps) => {
+    const [myRole, setMyRole] = useState<GroupRoleEnum>();
     const socket = useContext(SocketContext);
     const { id } = useParams();
     const [videoURL, setVideoURL] = useState<string | null>(null);
@@ -17,10 +20,44 @@ const GroupVideoPlayer: React.FC = () => {
     const peerConnection = useRef<RTCPeerConnection | null>(null);
     let pendingRemoteAnswer: RTCSessionDescriptionInit | null = null;
     const remoteDescriptionSet = useRef(false);
+    const userData = useAtomValue(userDataAtom);
+
+    // NEW: visibility flags; videos are hidden until they actually start playing
+    const [isLocalPlaying, setIsLocalPlaying] = useState(false);
+    const [isRemotePlaying, setIsRemotePlaying] = useState(false);
 
     const triggerFileSelect = () => {
         fileInputRef.current?.click();
     };
+
+    useEffect(() => {
+        if (props.groupData) setMyRole(props.groupData.members.find((item) => item.user?.id === userData?.id)?.role);
+    }, [props.groupData]);
+
+    // NEW: attach 'playing' listeners so visibility flips when playback starts
+    useEffect(() => {
+        const lv = localVideoRef.current;
+        if (!lv) return;
+
+        const onLocalPlaying = () => setIsLocalPlaying(true);
+        lv.addEventListener('playing', onLocalPlaying);
+
+        return () => {
+            lv.removeEventListener('playing', onLocalPlaying);
+        };
+    }, [videoURL]);
+
+    useEffect(() => {
+        const rv = remoteVideoRef.current;
+        if (!rv) return;
+
+        const onRemotePlaying = () => setIsRemotePlaying(true);
+        rv.addEventListener('playing', onRemotePlaying);
+
+        return () => {
+            rv.removeEventListener('playing', onRemotePlaying);
+        };
+    }, []);
 
     useEffect(() => {
         socket?.on('videoOffer', async ({ offer }) => {
@@ -56,6 +93,7 @@ const GroupVideoPlayer: React.FC = () => {
                             .then(() => {
                                 console.log('Remote video playback started');
                                 console.log('Remote video dimensions:', videoEl.videoWidth, videoEl.videoHeight);
+                                // visibility for remote will flip on 'playing' event
                             })
                             .catch((err) => {
                                 console.error('play() failed after metadata:', err);
@@ -155,6 +193,7 @@ const GroupVideoPlayer: React.FC = () => {
         if (file) {
             const url = URL.createObjectURL(file);
             setVideoURL(url);
+            setIsLocalPlaying(false); // ensure hidden again for each new selection
 
             setTimeout(() => {
                 if (localVideoRef.current) {
@@ -172,10 +211,10 @@ const GroupVideoPlayer: React.FC = () => {
     };
 
     return (
-        <Card className={`flex-1 overflow-hidden ${videoURL ? '!bg-black !p-0' : ''}`}>
+        <Card className={`flex-1 overflow-hidden ${isLocalPlaying || isRemotePlaying ? '!bg-black !p-0' : ''}`}>
             <div className="flex flex-1 items-center justify-center">
                 {videoURL ? (
-                    <div className="w-full py-4">
+                    <div style={{ display: isLocalPlaying ? 'block' : 'none' }} className="w-full py-4">
                         <div className="relative h-0 w-full overflow-hidden pb-[56.25%]">
                             <video
                                 ref={localVideoRef}
@@ -188,32 +227,36 @@ const GroupVideoPlayer: React.FC = () => {
                     </div>
                 ) : (
                     <>
-                        <input
-                            type="file"
-                            accept="video/*"
-                            onChange={handleVideoSelect}
-                            ref={fileInputRef}
-                            className="hidden"
-                        />
-                        <Button variant="contained" onClick={triggerFileSelect}>
-                            Select Video
-                        </Button>
-                        <div className="relative mt-4 h-0 w-full overflow-hidden pb-[56.25%]">
+                        {myRole && [GroupRoleEnum.CONTROLLER, GroupRoleEnum.CREATOR].includes(myRole) ? (
+                            <>
+                                <input
+                                    type="file"
+                                    accept="video/*"
+                                    onChange={handleVideoSelect}
+                                    ref={fileInputRef}
+                                    className="hidden"
+                                />
+                                <Button variant="contained" onClick={triggerFileSelect}>
+                                    Select Video
+                                </Button>
+                            </>
+                        ) : (
+                            <div style={{ display: isRemotePlaying ? 'none' : 'block' }}>
+                                <h1 className="text-md text-gray99 font-medium">
+                                    Wait for qualified people to select the video...{' '}
+                                </h1>
+                            </div>
+                        )}
+                        <div
+                            style={{ display: isRemotePlaying ? 'block' : 'none' }}
+                            className="relative mt-4 h-0 w-full overflow-hidden pb-[56.25%]"
+                        >
                             <video
                                 ref={remoteVideoRef}
                                 autoPlay
                                 playsInline
-                                // muted
-                                controls
                                 className="absolute top-0 left-0 h-full w-full"
                             />
-                            <Button
-                                variant="outlined"
-                                onClick={() => remoteVideoRef.current?.play()}
-                                className="absolute right-2 bottom-2 z-10"
-                            >
-                                Tap to play video
-                            </Button>
                         </div>
                     </>
                 )}
