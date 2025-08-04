@@ -60,7 +60,7 @@ const GroupInfoCard: React.FC<GroupInfoCardProps> = (props: GroupInfoCardProps) 
                         )}
                     </div>
                     {groupData?.description && (
-                        <p className="text-gray99 text-md font-light">{groupData?.description}</p>
+                        <p className="text-gray99 text-sm font-light">{groupData?.description}</p>
                     )}
                     <div className="flex items-center gap-1">
                         <p className="text-gray99 text-xs font-light">
