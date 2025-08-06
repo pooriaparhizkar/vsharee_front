@@ -1,7 +1,7 @@
 import { Card } from '@/utilities/components';
 import { GroupVideoPlayerProps } from './type';
 import StreamVideoPlayer from './methods/stream';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import ButtonGroup from '@mui/material/ButtonGroup';
 import Button from '@mui/material/Button';
 import { MdArrowDropDown } from 'react-icons/md';
@@ -16,6 +16,7 @@ import { useAtomValue } from 'jotai';
 import { userDataAtom } from '@/atom';
 import { VideoPlayingMethodsData } from './methods/data';
 import { VideoPlayingMethodsEnum } from './methods/type';
+import { SocketContext } from '@/context/SocketContext';
 
 const GroupVideoPlayer: React.FC<GroupVideoPlayerProps> = (props: GroupVideoPlayerProps) => {
     const [myRole, setMyRole] = useState<GroupRoleEnum>();
@@ -24,6 +25,7 @@ const GroupVideoPlayer: React.FC<GroupVideoPlayerProps> = (props: GroupVideoPlay
     const userData = useAtomValue(userDataAtom);
     const [selectedItem, setSelectedItem] = useState<{ title: string; key: VideoPlayingMethodsEnum }>();
     const [isChosen, setIsChosen] = useState(false);
+    const socket = useContext(SocketContext);
 
     useEffect(() => {
         if (props.groupData) setMyRole(props.groupData.members.find((item) => item.user?.id === userData?.id)?.role);
@@ -31,6 +33,8 @@ const GroupVideoPlayer: React.FC<GroupVideoPlayerProps> = (props: GroupVideoPlay
 
     const handleClick = () => {
         setIsChosen(true);
+        if (props.groupData?.id && selectedItem)
+            socket?.emit('methodSelected', { groupId: props.groupData?.id, method: selectedItem?.key });
     };
 
     const handleToggle = () => {
@@ -44,6 +48,13 @@ const GroupVideoPlayer: React.FC<GroupVideoPlayerProps> = (props: GroupVideoPlay
 
         setOpen(false);
     };
+
+    useEffect(() => {
+        socket?.on('methodSelected', (res) => {
+            setSelectedItem(VideoPlayingMethodsData.find((item) => item.key === res.method));
+            setIsChosen(true);
+        });
+    }, []);
     return (
         <Card className={`flex-1 overflow-hidden`}>
             {isChosen ? (
@@ -109,7 +120,7 @@ const GroupVideoPlayer: React.FC<GroupVideoPlayerProps> = (props: GroupVideoPlay
                             </Popper>
                         </>
                     ) : (
-                        <h1 className="text-md text-gray99 font-medium">
+                        <h1 className="text-md text-gray99 text-center font-medium">
                             Wait for qualified people to select the method...
                         </h1>
                     )}

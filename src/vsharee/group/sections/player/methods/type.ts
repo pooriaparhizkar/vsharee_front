@@ -1,5 +1,5 @@
 export enum VideoPlayingMethodsEnum {
-    STREAM,
-    URL,
-    LOCAL,
+    STREAM = 'STREAM',
+    URL = 'URL',
+    LOCAL = 'LOCAL',
 }

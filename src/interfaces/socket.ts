@@ -1,3 +1,5 @@
+import { VideoPlayingMethodsEnum } from 'vsharee/group/sections/player/methods/type';
+
 export interface __SocketUserType {
     id: string;
     name: string;
@@ -21,6 +23,7 @@ export interface __ServerToClientEvents {
     videoOffer: (data: { offer: RTCSessionDescriptionInit }) => void;
     videoAnswer: (data: { answer: RTCSessionDescriptionInit }) => void;
     iceCandidate: (data: { candidate: RTCIceCandidateInit }) => void;
+    methodSelected: (data: { method: VideoPlayingMethodsEnum }) => void;
 }
 
 export interface __ClientToServerEvents {
@@ -33,4 +36,5 @@ export interface __ClientToServerEvents {
     videoOffer: (data: { offer: RTCSessionDescriptionInit; groupId: string }) => void;
     videoAnswer: (data: { answer: RTCSessionDescriptionInit; groupId: string }) => void;
     iceCandidate: (data: { candidate: RTCIceCandidateInit; groupId: string }) => void;
+    methodSelected: (data: { groupId: string; method: VideoPlayingMethodsEnum }) => void;
 }
