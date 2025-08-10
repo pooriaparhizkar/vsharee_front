@@ -17,6 +17,7 @@ import { userDataAtom } from '@/atom';
 import { VideoPlayingMethodsData } from './methods/data';
 import { VideoPlayingMethodsEnum } from './methods/type';
 import { SocketContext } from '@/context/SocketContext';
+import UrlVideoPlayer from './methods/url';
 
 const GroupVideoPlayer: React.FC<GroupVideoPlayerProps> = (props: GroupVideoPlayerProps) => {
     const [myRole, setMyRole] = useState<GroupRoleEnum>();
@@ -56,9 +57,12 @@ const GroupVideoPlayer: React.FC<GroupVideoPlayerProps> = (props: GroupVideoPlay
         });
     }, []);
     return (
-        <Card className={`flex-1 overflow-hidden`}>
+        <Card className={`flex-1 overflow-hidden !p-0`}>
             {isChosen ? (
-                <>{selectedItem?.key === VideoPlayingMethodsEnum.STREAM && <StreamVideoPlayer myRole={myRole} />}</>
+                <>
+                    {selectedItem?.key === VideoPlayingMethodsEnum.STREAM && <StreamVideoPlayer myRole={myRole} />}
+                    {selectedItem?.key === VideoPlayingMethodsEnum.URL && <UrlVideoPlayer myRole={myRole} />}
+                </>
             ) : (
                 <div className="flex h-full w-full flex-1 items-center justify-center">
                     {myRole && [GroupRoleEnum.CONTROLLER, GroupRoleEnum.CREATOR].includes(myRole) ? (

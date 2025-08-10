@@ -1,3 +1,4 @@
+import { VideoControlEnum } from 'interfaces';
 import { VideoPlayingMethodsEnum } from 'vsharee/group/sections/player/methods/type';
 
 export interface __SocketUserType {
@@ -15,7 +16,7 @@ export interface __ServerToClientEvents {
     userJoined: (data: __SocketUserType) => void;
     newMessage: (data: __SocketMessageType) => void;
     messageSent: (data: any) => void;
-    syncVideo: (data: any) => void;
+    syncVideo: (data: { user: __SocketUserType, action: VideoControlEnum, time: number }) => void;
     error: (err: any) => void;
     userLeft: (data: __SocketUserType) => void;
     heartbeat_ack: (data: any) => void;
@@ -24,17 +25,18 @@ export interface __ServerToClientEvents {
     videoAnswer: (data: { answer: RTCSessionDescriptionInit }) => void;
     iceCandidate: (data: { candidate: RTCIceCandidateInit }) => void;
     methodSelected: (data: { method: VideoPlayingMethodsEnum }) => void;
+    receiveVideoUrl: (data: { url: string }) => void;
 }
 
 export interface __ClientToServerEvents {
     joinGroup: (data: { groupId: string }) => void;
     sendMessage: (data: { groupId: string; message: string }) => void;
-    videoControl: (data: { groupId: string; action: any }) => void;
+    videoControl: (data: { groupId: string; action: VideoControlEnum, time: number }) => void;
     leftGroup: (data: any) => void;
     heartbeat: () => void;
-    videoSelected: (data: { groupId: string; videoData: string; user: __SocketUserType }) => void;
     videoOffer: (data: { offer: RTCSessionDescriptionInit; groupId: string }) => void;
     videoAnswer: (data: { answer: RTCSessionDescriptionInit; groupId: string }) => void;
     iceCandidate: (data: { candidate: RTCIceCandidateInit; groupId: string }) => void;
     methodSelected: (data: { groupId: string; method: VideoPlayingMethodsEnum }) => void;
+    sendVideoUrl: (data: { groupId?: string; url: string }) => void;
 }

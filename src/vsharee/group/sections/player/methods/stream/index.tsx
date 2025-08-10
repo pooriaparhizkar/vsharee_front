@@ -5,9 +5,9 @@ import Button from '@mui/material/Button';
 import { GroupRoleEnum } from '@/interfaces';
 import { useAtomValue } from 'jotai';
 import { userDataAtom } from '@/atom';
-import { GroupVideoPlayerProps } from './type';
+import { StreamVideoPlayerProps } from './type';
 
-const StreamVideoPlayer: React.FC<GroupVideoPlayerProps> = (props: GroupVideoPlayerProps) => {
+const StreamVideoPlayer: React.FC<StreamVideoPlayerProps> = (props: StreamVideoPlayerProps) => {
     const [myRole, setMyRole] = useState<GroupRoleEnum>();
     const socket = useContext(SocketContext);
     const { id } = useParams();
@@ -252,6 +252,7 @@ const StreamVideoPlayer: React.FC<GroupVideoPlayerProps> = (props: GroupVideoPla
                         className="relative mt-4 h-0 w-full overflow-hidden pb-[56.25%]"
                     >
                         <video
+                            controls={myRole && [GroupRoleEnum.CONTROLLER, GroupRoleEnum.CREATOR].includes(myRole)}
                             ref={remoteVideoRef}
                             autoPlay
                             playsInline

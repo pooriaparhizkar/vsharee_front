@@ -1,5 +1,5 @@
 import { GroupRoleEnum, GroupType } from 'interfaces';
 
-export interface StreamVideoPlayerProps {
+export interface UrlVideoPlayerProps {
     myRole?: GroupRoleEnum | null;
 }
