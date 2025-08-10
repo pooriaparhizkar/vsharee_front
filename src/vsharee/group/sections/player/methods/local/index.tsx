@@ -12,6 +12,8 @@ const LocalVideoPlayer: React.FC<LocalVideoPlayerProps> = (props: LocalVideoPlay
     const { id } = useParams();
     const videoRef = useRef<HTMLVideoElement>(null);
     const isRemoteAction = useRef(false);
+    const emitTimeout = useRef<NodeJS.Timeout | null>(null);
+    const justPaused = useRef(false);
 
     const [videoHash, setVideoHash] = useState<string>('');
     const [currentUrl, setCurrentUrl] = useState<string>('');
@@ -74,6 +76,48 @@ const LocalVideoPlayer: React.FC<LocalVideoPlayerProps> = (props: LocalVideoPlay
         });
     };
 
+    // Queue for incoming remote video actions
+    type VideoAction = { action: VideoControlEnum; time: number };
+    const actionQueue = useRef<VideoAction[]>([]);
+    const processingAction = useRef(false);
+
+    const processQueue = async () => {
+        if (processingAction.current) return;
+        processingAction.current = true;
+
+        while (actionQueue.current.length > 0) {
+            const { action, time } = actionQueue.current.shift()!;
+            if (!videoRef.current) break;
+
+            isRemoteAction.current = true;
+
+            switch (action) {
+                case VideoControlEnum.PLAY:
+                    videoRef.current.currentTime = time;
+                    try {
+                        await videoRef.current.play();
+                    } catch (e: any) {
+                        if (e.name !== 'AbortError') console.error(e);
+                    }
+                    break;
+                case VideoControlEnum.PAUSE:
+                    videoRef.current.currentTime = time;
+                    videoRef.current.pause();
+                    break;
+                case VideoControlEnum.MOVE:
+                    videoRef.current.currentTime = time;
+                    break;
+            }
+
+            // Wait 250ms to let video settle before next action
+            await new Promise((resolve) => setTimeout(resolve, 250));
+
+            isRemoteAction.current = false;
+        }
+
+        processingAction.current = false;
+    };
+
     useEffect(() => {
         socket?.on('receiveVideoFileHash', ({ hash, name }) => {
             setRemoteHash(hash);
@@ -82,32 +126,23 @@ const LocalVideoPlayer: React.FC<LocalVideoPlayerProps> = (props: LocalVideoPlay
             setCanSelectVideo(false);
             if (canControl) return;
         });
-        socket?.on('syncVideo', (data) => {
-            if (!videoRef.current) return;
-            isRemoteAction.current = true;
-            const { action, time } = data;
-            if (typeof time !== 'number') return;
-            switch (action) {
-                case 'PLAY':
-                    videoRef.current.currentTime = time;
-                    videoRef.current.play();
-                    break;
-                case 'PAUSE':
-                    videoRef.current.currentTime = time;
-                    videoRef.current.pause();
-                    break;
-                case 'MOVE':
-                    videoRef.current.currentTime = time;
-                    break;
+
+        const handleSyncVideo = (data: { action: string; time: number }) => {
+            if (
+                data.action === VideoControlEnum.PLAY ||
+                data.action === VideoControlEnum.PAUSE ||
+                data.action === VideoControlEnum.MOVE
+            ) {
+                actionQueue.current.push({ action: data.action, time: data.time });
+                processQueue();
             }
-            setTimeout(() => {
-                isRemoteAction.current = false;
-            }, 100);
-        });
+        };
+
+        socket?.on('syncVideo', handleSyncVideo);
 
         return () => {
             socket?.off('receiveVideoFileHash');
-            socket?.off('syncVideo');
+            socket?.off('syncVideo', handleSyncVideo);
         };
     }, [socket, canControl]);
 
@@ -115,7 +150,6 @@ const LocalVideoPlayer: React.FC<LocalVideoPlayerProps> = (props: LocalVideoPlay
         if (!e.target.files?.length) return;
         const file = e.target.files[0];
         const hash = await hashFile(file);
-        console.log('Selected file hash:', hash);
         setVideoHash(hash);
         setFileName(file.name);
         setCurrentUrl(URL.createObjectURL(file));
@@ -127,7 +161,6 @@ const LocalVideoPlayer: React.FC<LocalVideoPlayerProps> = (props: LocalVideoPlay
         if (!e.target.files?.length) return;
         const file = e.target.files[0];
         const hash = await hashFile(file);
-        console.log('Selected file hash:', hash);
         setVideoHash(hash);
         setFileName(file.name);
         setSelectedFileUrl(URL.createObjectURL(file));
@@ -151,34 +184,58 @@ const LocalVideoPlayer: React.FC<LocalVideoPlayerProps> = (props: LocalVideoPlay
         setHashMismatch(false);
     };
 
+    const debounceTimeout = 150;
+    // Helper to debounce emit videoControl events
+    const emitVideoControl = (action: VideoControlEnum, time: number) => {
+        if (emitTimeout.current) clearTimeout(emitTimeout.current);
+        emitTimeout.current = setTimeout(() => {
+            if (id && socket) {
+                socket.emit('videoControl', {
+                    groupId: id,
+                    action,
+                    time,
+                });
+            }
+        }, debounceTimeout);
+    };
+
     const handlePlay = () => {
         if (id && canControl && videoRef.current && !isRemoteAction.current) {
-            socket?.emit('videoControl', {
-                groupId: id,
-                action: VideoControlEnum.PLAY,
-                time: videoRef.current.currentTime,
-            });
+            const playPromise = videoRef.current.play();
+            if (playPromise !== undefined) {
+                playPromise.catch((error) => {
+                    if (error.name !== 'AbortError') {
+                        console.error('Error trying to play video:', error);
+                    }
+                });
+            }
+
+            emitVideoControl(VideoControlEnum.PLAY, videoRef.current.currentTime);
         }
     };
 
     const handlePause = () => {
         if (id && canControl && videoRef.current && !isRemoteAction.current) {
-            socket?.emit('videoControl', {
-                groupId: id,
-                action: VideoControlEnum.PAUSE,
-                time: videoRef.current.currentTime,
-            });
+            videoRef.current.pause();
+
+            justPaused.current = true;
+
+            setTimeout(() => {
+                justPaused.current = false;
+            }, 300);
+
+            emitVideoControl(VideoControlEnum.PAUSE, videoRef.current.currentTime);
         }
     };
 
     const handleSeeked = () => {
         if (id && canControl && videoRef.current && !isRemoteAction.current) {
+            // Prevent sending MOVE right after pause
+            if (justPaused.current) {
+                return;
+            }
             videoRef.current.pause();
-            socket?.emit('videoControl', {
-                groupId: id,
-                action: VideoControlEnum.MOVE,
-                time: videoRef.current.currentTime,
-            });
+            emitVideoControl(VideoControlEnum.MOVE, videoRef.current.currentTime);
         }
     };
 

@@ -3,6 +3,8 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import checker from 'vite-plugin-checker';
 import { VitePWA } from 'vite-plugin-pwa';
+import fs from 'fs';
+import path from 'path';
 
 export default defineConfig({
     plugins: [
@@ -22,6 +24,11 @@ export default defineConfig({
     ],
     server: {
         port: 3000,
+        host: 'localhost',
+        https: {
+            key: fs.readFileSync(path.resolve(__dirname, 'localhost-key.pem')),
+            cert: fs.readFileSync(path.resolve(__dirname, 'localhost.pem')),
+        },
     },
     resolve: {
         alias: {
