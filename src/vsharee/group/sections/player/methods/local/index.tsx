@@ -22,15 +22,19 @@ const LocalVideoPlayer: React.FC<LocalVideoPlayerProps> = (props: LocalVideoPlay
     const [hashMismatch, setHashMismatch] = useState<boolean>(false);
     const [selectedFileUrl, setSelectedFileUrl] = useState<string>('');
     const fileInputRef = useRef<HTMLInputElement | null>(null);
-
     const [isHashing, setIsHashing] = useState(false);
     const [hashProgress, setHashProgress] = useState(0);
+    const [canSelectVideo, setCanSelectVideo] = useState<boolean>();
+    const canControl = myRole && [GroupRoleEnum.CONTROLLER, GroupRoleEnum.CREATOR].includes(myRole);
 
     useEffect(() => {
-        if (props.myRole) setMyRole(props.myRole);
+        if (props.myRole) {
+            setMyRole(props.myRole);
+            setCanSelectVideo(
+                !!(props.myRole && [GroupRoleEnum.CONTROLLER, GroupRoleEnum.CREATOR].includes(props.myRole)),
+            );
+        }
     }, [props.myRole]);
-
-    const canControl = myRole && [GroupRoleEnum.CONTROLLER, GroupRoleEnum.CREATOR].includes(myRole);
 
     const hashFile = (file: File): Promise<string> => {
         return new Promise((resolve, reject) => {
@@ -75,14 +79,9 @@ const LocalVideoPlayer: React.FC<LocalVideoPlayerProps> = (props: LocalVideoPlay
             setRemoteHash(hash);
             setFileName(name);
             setHasRemoteSelected(true);
+            setCanSelectVideo(false);
             if (canControl) return;
         });
-        return () => {
-            socket?.off('receiveVideoFileHash');
-        };
-    }, [socket, canControl]);
-
-    useEffect(() => {
         socket?.on('syncVideo', (data) => {
             if (!videoRef.current) return;
             isRemoteAction.current = true;
@@ -107,10 +106,10 @@ const LocalVideoPlayer: React.FC<LocalVideoPlayerProps> = (props: LocalVideoPlay
         });
 
         return () => {
-            socket?.off('receiveVideoUrl');
+            socket?.off('receiveVideoFileHash');
             socket?.off('syncVideo');
         };
-    }, []);
+    }, [socket, canControl]);
 
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files?.length) return;
@@ -194,7 +193,7 @@ const LocalVideoPlayer: React.FC<LocalVideoPlayerProps> = (props: LocalVideoPlay
                 </div>
             )}
             {!currentUrl
-                ? canControl
+                ? canSelectVideo
                     ? !isHashing && (
                           <div className="flex w-full flex-col items-center justify-center gap-6">
                               <input
