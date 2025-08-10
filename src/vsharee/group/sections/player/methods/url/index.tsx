@@ -126,7 +126,7 @@ const UrlVideoPlayer: React.FC<UrlVideoPlayerProps> = (props: UrlVideoPlayerProp
                         className="absolute top-0 left-0 h-full w-full"
                         onPlay={handlePlay}
                         onPause={handlePause}
-                        onSeeked={handleSeeked}
+                        // onSeeked={handleSeeked}
                     />
                 </div>
             )}
