@@ -26,6 +26,7 @@ export interface __ServerToClientEvents {
     iceCandidate: (data: { candidate: RTCIceCandidateInit }) => void;
     methodSelected: (data: { method: VideoPlayingMethodsEnum }) => void;
     receiveVideoUrl: (data: { url: string }) => void;
+    receiveVideoFileHash: (data: { hash: string; name: string }) => void;
 }
 
 export interface __ClientToServerEvents {
@@ -39,4 +40,5 @@ export interface __ClientToServerEvents {
     iceCandidate: (data: { candidate: RTCIceCandidateInit; groupId: string }) => void;
     methodSelected: (data: { groupId: string; method: VideoPlayingMethodsEnum }) => void;
     sendVideoUrl: (data: { groupId?: string; url: string }) => void;
+    sendVideoFileHash: (data: { groupId?: string; hash: string; name: string }) => void;
 }

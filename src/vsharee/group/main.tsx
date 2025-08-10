@@ -17,7 +17,7 @@ const MainGroupComponent: React.FC<MainGroupComponentProps> = (props: MainGroupC
             <GroupInfoCard fetch={props.fetch} groupData={groupData} />
             <div className="flex h-full flex-1 gap-4 overflow-hidden">
                 <GroupVideoPlayer groupData={groupData} />
-                <GroupChatCard />
+                {/* <GroupChatCard /> */}
             </div>
         </div>
     );

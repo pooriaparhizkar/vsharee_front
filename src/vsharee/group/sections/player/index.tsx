@@ -18,6 +18,7 @@ import { VideoPlayingMethodsData } from './methods/data';
 import { VideoPlayingMethodsEnum } from './methods/type';
 import { SocketContext } from '@/context/SocketContext';
 import UrlVideoPlayer from './methods/url';
+import LocalVideoPlayer from './methods/local';
 
 const GroupVideoPlayer: React.FC<GroupVideoPlayerProps> = (props: GroupVideoPlayerProps) => {
     const [myRole, setMyRole] = useState<GroupRoleEnum>();
@@ -62,6 +63,7 @@ const GroupVideoPlayer: React.FC<GroupVideoPlayerProps> = (props: GroupVideoPlay
                 <>
                     {selectedItem?.key === VideoPlayingMethodsEnum.STREAM && <StreamVideoPlayer myRole={myRole} />}
                     {selectedItem?.key === VideoPlayingMethodsEnum.URL && <UrlVideoPlayer myRole={myRole} />}
+                    {selectedItem?.key === VideoPlayingMethodsEnum.LOCAL && <LocalVideoPlayer myRole={myRole} />}
                 </>
             ) : (
                 <div className="flex h-full w-full flex-1 items-center justify-center">
