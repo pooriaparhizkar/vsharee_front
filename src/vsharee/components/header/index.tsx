@@ -62,14 +62,6 @@ const Header: React.FC = () => {
                     <MenuList>
                         <MenuItem
                             onClick={() => {
-                                navigate('/profile');
-                                handleClose();
-                            }}
-                        >
-                            Profile
-                        </MenuItem>
-                        <MenuItem
-                            onClick={() => {
                                 logout();
                                 handleClose();
                             }}

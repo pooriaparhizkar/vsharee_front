@@ -72,12 +72,12 @@ const Search: React.FC = () => {
                         result.length !== 0 ? (
                             <MenuList>
                                 {result.map((item, index) => (
-                                    <Link target="_blank" to={PATH.profile(item.id)}>
-                                        <MenuItem className="flex items-center gap-2" key={index}>
-                                            <FaRegUser />
-                                            {item.name}
-                                        </MenuItem>
-                                    </Link>
+                                    // <Link target="_blank" to={PATH.profile(item.id)}>
+                                    <MenuItem className="flex items-center gap-2" key={index}>
+                                        <FaRegUser />
+                                        {item.name}
+                                    </MenuItem>
+                                    // </Link>
                                 ))}
                             </MenuList>
                         ) : (
