@@ -10,4 +10,5 @@ export enum EditGroupOptions {
     edit,
     addMember,
     delete,
+    restart,
 }

@@ -56,6 +56,11 @@ const GroupVideoPlayer: React.FC<GroupVideoPlayerProps> = (props: GroupVideoPlay
             setSelectedItem(VideoPlayingMethodsData.find((item) => item.key === res.method));
             setIsChosen(true);
         });
+
+        socket?.on('contentReset', () => {
+            setIsChosen(false);
+            setSelectedItem(undefined);
+        });
     }, []);
     return (
         <Card className={`flex-1 overflow-hidden !p-0`}>

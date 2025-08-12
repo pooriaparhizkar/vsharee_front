@@ -16,7 +16,7 @@ export interface __ServerToClientEvents {
     userJoined: (data: __SocketUserType) => void;
     newMessage: (data: __SocketMessageType) => void;
     messageSent: (data: any) => void;
-    syncVideo: (data: { user: __SocketUserType, action: VideoControlEnum, time: number }) => void;
+    syncVideo: (data: { user: __SocketUserType; action: VideoControlEnum; time: number }) => void;
     error: (err: any) => void;
     userLeft: (data: __SocketUserType) => void;
     heartbeat_ack: (data: any) => void;
@@ -27,12 +27,13 @@ export interface __ServerToClientEvents {
     methodSelected: (data: { method: VideoPlayingMethodsEnum }) => void;
     receiveVideoUrl: (data: { url: string }) => void;
     receiveVideoFileHash: (data: { hash: string; name: string }) => void;
+    contentReset: () => void;
 }
 
 export interface __ClientToServerEvents {
     joinGroup: (data: { groupId: string }) => void;
     sendMessage: (data: { groupId: string; message: string }) => void;
-    videoControl: (data: { groupId: string; action: VideoControlEnum, time: number }) => void;
+    videoControl: (data: { groupId: string; action: VideoControlEnum; time: number }) => void;
     leftGroup: (data: any) => void;
     heartbeat: () => void;
     videoOffer: (data: { offer: RTCSessionDescriptionInit; groupId: string }) => void;
@@ -41,4 +42,5 @@ export interface __ClientToServerEvents {
     methodSelected: (data: { groupId: string; method: VideoPlayingMethodsEnum }) => void;
     sendVideoUrl: (data: { groupId?: string; url: string }) => void;
     sendVideoFileHash: (data: { groupId?: string; hash: string; name: string }) => void;
+    restartContent: (data: { groupId: string }) => void;
 }

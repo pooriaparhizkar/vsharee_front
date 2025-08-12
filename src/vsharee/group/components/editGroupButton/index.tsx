@@ -8,13 +8,15 @@ import ListItemText from '@mui/material/ListItemText';
 import { EditGroupButtonProps, EditGroupOptions } from './type';
 import { FormGroupModal } from '@/vsharee/components';
 import { GroupType } from 'interfaces';
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 import { ConfirmationModal } from '@/utilities/components';
 import { del } from '@/scripts';
 import { API, PATH } from '@/data';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import AddMemberModal from './modals/addMemberModal';
+import { editGroupButtonOptionsData } from './data';
+import { SocketContext } from '@/context/SocketContext';
 
 export default function EditGroupButton(props: EditGroupButtonProps) {
     const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -23,19 +25,7 @@ export default function EditGroupButton(props: EditGroupButtonProps) {
     const [deleteGroupModal, setDeleteGroupModal] = useState(false);
     const [addMemberModal, setAddMemberModal] = useState<GroupType>();
     const navigate = useNavigate();
-    const options = [
-        {
-            label: 'Edit Group',
-            key: EditGroupOptions.edit,
-            icon: MdEdit,
-        },
-        {
-            label: 'Manage Members',
-            key: EditGroupOptions.addMember,
-            icon: MdGroupAdd,
-        },
-        { label: 'Delete Group', key: EditGroupOptions.delete, icon: MdDelete },
-    ];
+    const socket = useContext(SocketContext);
 
     const handleClick = (event: React.MouseEvent<HTMLElement>) => {
         event.preventDefault();
@@ -45,6 +35,10 @@ export default function EditGroupButton(props: EditGroupButtonProps) {
     const handleClose = () => {
         setAnchorEl(null);
     };
+
+    function restartContentHandler() {
+        if (props.groupData) socket?.emit('restartContent', { groupId: props.groupData?.id });
+    }
 
     function itemSelectHandler(optionKey: EditGroupOptions) {
         handleClose();
@@ -58,6 +52,9 @@ export default function EditGroupButton(props: EditGroupButtonProps) {
                 break;
             case EditGroupOptions.addMember:
                 setAddMemberModal(props.groupData);
+                break;
+            case EditGroupOptions.restart:
+                restartContentHandler();
                 break;
         }
     }
@@ -102,7 +99,7 @@ export default function EditGroupButton(props: EditGroupButtonProps) {
                 <MdMoreVert />
             </IconButton>
             <Menu anchorEl={anchorEl} open={open} onClose={handleClose}>
-                {options.map((option) => (
+                {editGroupButtonOptionsData.map((option) => (
                     <MenuItem key={option.key} onClick={() => itemSelectHandler(option.key)}>
                         <ListItemIcon>
                             <option.icon />
