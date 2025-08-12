@@ -6,6 +6,7 @@ import { GroupRoleEnum } from '@/interfaces';
 import { useAtomValue } from 'jotai';
 import { userDataAtom } from '@/atom';
 import { StreamVideoPlayerProps } from './type';
+import { srtToVttBrowser } from '@/scripts';
 
 const StreamVideoPlayer: React.FC<StreamVideoPlayerProps> = (props: StreamVideoPlayerProps) => {
     const [myRole, setMyRole] = useState<GroupRoleEnum>();
@@ -19,7 +20,8 @@ const StreamVideoPlayer: React.FC<StreamVideoPlayerProps> = (props: StreamVideoP
     const peerConnection = useRef<RTCPeerConnection | null>(null);
     let pendingRemoteAnswer: RTCSessionDescriptionInit | null = null;
     const remoteDescriptionSet = useRef(false);
-    const userData = useAtomValue(userDataAtom);
+    const subtitleInputRef = useRef<HTMLInputElement | null>(null);
+    const [subtitleUrl, setSubtitleUrl] = useState<string>('');
 
     // NEW: visibility flags; videos are hidden until they actually start playing
     const [isLocalPlaying, setIsLocalPlaying] = useState(false);
@@ -209,19 +211,50 @@ const StreamVideoPlayer: React.FC<StreamVideoPlayerProps> = (props: StreamVideoP
         }
     };
 
+    const handleSubtitleSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files?.length) return;
+        const file = e.target.files[0];
+
+        if (file.name.toLowerCase().endsWith('.srt')) {
+            const srtText = await file.text();
+            const vttText = srtToVttBrowser(srtText);
+            const vttBlob = new Blob([vttText], { type: 'text/vtt' });
+            const vttUrl = URL.createObjectURL(vttBlob);
+            setSubtitleUrl(vttUrl);
+        } else {
+            const url = URL.createObjectURL(file);
+            setSubtitleUrl(url);
+        }
+    };
+
     return (
         <div
             className={`flex flex-1 items-center justify-center ${isLocalPlaying || isRemotePlaying ? '!bg-black !p-0' : ''}`}
         >
             {videoURL ? (
-                <div style={{ display: isLocalPlaying ? 'block' : 'none' }} className="w-full py-4">
-                    <div className="relative h-0 w-full overflow-hidden pb-[56.25%]">
+                <div style={{ display: isLocalPlaying ? 'block' : 'none' }} className="h-full w-full py-4">
+                    <div className="relative h-full w-full">
                         <video
                             ref={localVideoRef}
                             src={videoURL}
                             autoPlay
                             controls
-                            className="absolute top-0 left-0 h-full w-full"
+                            className="absolute inset-0 h-full w-full object-contain"
+                        >
+                            {subtitleUrl && <track src={subtitleUrl} kind="subtitles" srcLang="en" default />}
+                        </video>
+                        <button
+                            onClick={() => subtitleInputRef.current?.click()}
+                            className="absolute top-3 right-3 cursor-pointer rounded bg-black/60 px-2 py-1 text-white transition-opacity hover:opacity-70"
+                        >
+                            CC
+                        </button>
+                        <input
+                            type="file"
+                            accept=".vtt,.srt"
+                            ref={subtitleInputRef}
+                            onChange={handleSubtitleSelect}
+                            className="hidden"
                         />
                     </div>
                 </div>
@@ -247,17 +280,29 @@ const StreamVideoPlayer: React.FC<StreamVideoPlayerProps> = (props: StreamVideoP
                             </h1>
                         </div>
                     )}
-                    <div
-                        style={{ display: isRemotePlaying ? 'block' : 'none' }}
-                        className="relative mt-4 h-0 w-full overflow-hidden pb-[56.25%]"
-                    >
+                    <div style={{ display: isRemotePlaying ? 'block' : 'none' }} className="relative h-full w-full">
                         <video
                             controls={myRole && [GroupRoleEnum.CONTROLLER, GroupRoleEnum.CREATOR].includes(myRole)}
                             ref={remoteVideoRef}
                             autoPlay
                             playsInline
-                            className="absolute top-0 left-0 h-full w-full"
-                        />
+                            className="absolute inset-0 h-full w-full object-contain"
+                        >
+                            {subtitleUrl && <track src={subtitleUrl} kind="subtitles" srcLang="en" default />}
+                            <button
+                                onClick={() => subtitleInputRef.current?.click()}
+                                className="absolute top-3 right-3 cursor-pointer rounded bg-black/60 px-2 py-1 text-white transition-opacity hover:opacity-70"
+                            >
+                                CC
+                            </button>
+                            <input
+                                type="file"
+                                accept=".vtt,.srt"
+                                ref={subtitleInputRef}
+                                onChange={handleSubtitleSelect}
+                                className="hidden"
+                            />
+                        </video>
                     </div>
                 </>
             )}

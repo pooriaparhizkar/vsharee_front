@@ -5,6 +5,7 @@ import { GroupRoleEnum, VideoControlEnum } from '@/interfaces';
 import { UrlVideoPlayerProps } from './type';
 import { Input } from '@/utilities/components';
 import Button from '@mui/material/Button';
+import { srtToVttBrowser } from '@/scripts';
 
 const UrlVideoPlayer: React.FC<UrlVideoPlayerProps> = (props: UrlVideoPlayerProps) => {
     const [myRole, setMyRole] = useState<GroupRoleEnum>();
@@ -14,6 +15,8 @@ const UrlVideoPlayer: React.FC<UrlVideoPlayerProps> = (props: UrlVideoPlayerProp
     const { id } = useParams();
     const videoRef = useRef<HTMLVideoElement>(null);
     const isRemoteAction = useRef(false);
+    const subtitleInputRef = useRef<HTMLInputElement | null>(null);
+    const [subtitleUrl, setSubtitleUrl] = useState<string>('');
 
     useEffect(() => {
         if (props.myRole) setMyRole(props.myRole);
@@ -92,6 +95,22 @@ const UrlVideoPlayer: React.FC<UrlVideoPlayerProps> = (props: UrlVideoPlayerProp
         }
     };
 
+    const handleSubtitleSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files?.length) return;
+        const file = e.target.files[0];
+
+        if (file.name.toLowerCase().endsWith('.srt')) {
+            const srtText = await file.text();
+            const vttText = srtToVttBrowser(srtText);
+            const vttBlob = new Blob([vttText], { type: 'text/vtt' });
+            const vttUrl = URL.createObjectURL(vttBlob);
+            setSubtitleUrl(vttUrl);
+        } else {
+            const url = URL.createObjectURL(file);
+            setSubtitleUrl(url);
+        }
+    };
+
     return (
         <div
             className={`flex w-full flex-1 flex-col items-center justify-center p-4 ${currentUrl ? 'bg-black !p-0' : ''}`}
@@ -117,7 +136,7 @@ const UrlVideoPlayer: React.FC<UrlVideoPlayerProps> = (props: UrlVideoPlayerProp
                     </div>
                 )
             ) : (
-                <div className="relative mt-4 h-0 w-full overflow-hidden pb-[56.25%]">
+                <div className="relative h-full w-full">
                     <video
                         ref={videoRef}
                         src={currentUrl}
@@ -127,6 +146,21 @@ const UrlVideoPlayer: React.FC<UrlVideoPlayerProps> = (props: UrlVideoPlayerProp
                         onPlay={handlePlay}
                         onPause={handlePause}
                         // onSeeked={handleSeeked}
+                    >
+                        {subtitleUrl && <track src={subtitleUrl} kind="subtitles" srcLang="en" default />}
+                    </video>
+                    <button
+                        onClick={() => subtitleInputRef.current?.click()}
+                        className="absolute top-3 right-3 cursor-pointer rounded bg-black/60 px-2 py-1 text-white transition-opacity hover:opacity-70"
+                    >
+                        CC
+                    </button>
+                    <input
+                        type="file"
+                        accept=".vtt,.srt"
+                        ref={subtitleInputRef}
+                        onChange={handleSubtitleSelect}
+                        className="hidden"
                     />
                 </div>
             )}

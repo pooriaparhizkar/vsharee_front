@@ -5,6 +5,7 @@ import { GroupRoleEnum, VideoControlEnum } from '@/interfaces';
 import { LocalVideoPlayerProps } from './type';
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
+import { srtToVttBrowser } from '@/scripts';
 
 const LocalVideoPlayer: React.FC<LocalVideoPlayerProps> = (props: LocalVideoPlayerProps) => {
     const [myRole, setMyRole] = useState<GroupRoleEnum>();
@@ -28,6 +29,8 @@ const LocalVideoPlayer: React.FC<LocalVideoPlayerProps> = (props: LocalVideoPlay
     const [hashProgress, setHashProgress] = useState(0);
     const [canSelectVideo, setCanSelectVideo] = useState<boolean>();
     const canControl = myRole && [GroupRoleEnum.CONTROLLER, GroupRoleEnum.CREATOR].includes(myRole);
+    const subtitleInputRef = useRef<HTMLInputElement | null>(null);
+    const [subtitleUrl, setSubtitleUrl] = useState<string>('');
 
     useEffect(() => {
         if (props.myRole) {
@@ -109,7 +112,6 @@ const LocalVideoPlayer: React.FC<LocalVideoPlayerProps> = (props: LocalVideoPlay
                     break;
             }
 
-            // Wait 250ms to let video settle before next action
             await new Promise((resolve) => setTimeout(resolve, 250));
 
             isRemoteAction.current = false;
@@ -124,7 +126,6 @@ const LocalVideoPlayer: React.FC<LocalVideoPlayerProps> = (props: LocalVideoPlay
             setFileName(name);
             setHasRemoteSelected(true);
             setCanSelectVideo(false);
-            if (canControl) return;
         });
 
         const handleSyncVideo = (data: { action: string; time: number }) => {
@@ -185,7 +186,6 @@ const LocalVideoPlayer: React.FC<LocalVideoPlayerProps> = (props: LocalVideoPlay
     };
 
     const debounceTimeout = 150;
-    // Helper to debounce emit videoControl events
     const emitVideoControl = (action: VideoControlEnum, time: number) => {
         if (emitTimeout.current) clearTimeout(emitTimeout.current);
         emitTimeout.current = setTimeout(() => {
@@ -217,25 +217,35 @@ const LocalVideoPlayer: React.FC<LocalVideoPlayerProps> = (props: LocalVideoPlay
     const handlePause = () => {
         if (id && canControl && videoRef.current && !isRemoteAction.current) {
             videoRef.current.pause();
-
             justPaused.current = true;
-
             setTimeout(() => {
                 justPaused.current = false;
             }, 300);
-
             emitVideoControl(VideoControlEnum.PAUSE, videoRef.current.currentTime);
         }
     };
 
     const handleSeeked = () => {
         if (id && canControl && videoRef.current && !isRemoteAction.current) {
-            // Prevent sending MOVE right after pause
-            if (justPaused.current) {
-                return;
-            }
+            if (justPaused.current) return;
             videoRef.current.pause();
             emitVideoControl(VideoControlEnum.MOVE, videoRef.current.currentTime);
+        }
+    };
+
+    const handleSubtitleSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files?.length) return;
+        const file = e.target.files[0];
+
+        if (file.name.toLowerCase().endsWith('.srt')) {
+            const srtText = await file.text();
+            const vttText = srtToVttBrowser(srtText);
+            const vttBlob = new Blob([vttText], { type: 'text/vtt' });
+            const vttUrl = URL.createObjectURL(vttBlob);
+            setSubtitleUrl(vttUrl);
+        } else {
+            const url = URL.createObjectURL(file);
+            setSubtitleUrl(url);
         }
     };
 
@@ -305,16 +315,32 @@ const LocalVideoPlayer: React.FC<LocalVideoPlayerProps> = (props: LocalVideoPlay
                       )
                 : null}
             {hashConfirmed && currentUrl && (
-                <div className="relative mt-4 w-full overflow-hidden pb-[56.25%]">
+                <div className="relative h-full w-full">
                     <video
                         ref={videoRef}
                         src={currentUrl}
                         controls={canControl}
                         playsInline
-                        className="absolute top-0 left-0 h-full w-full"
+                        className="absolute inset-0 h-full w-full object-contain"
                         onPlay={handlePlay}
                         onPause={handlePause}
                         onSeeked={handleSeeked}
+                    >
+                        {subtitleUrl && <track src={subtitleUrl} kind="subtitles" srcLang="en" default />}
+                    </video>
+
+                    <button
+                        onClick={() => subtitleInputRef.current?.click()}
+                        className="absolute top-3 right-3 cursor-pointer rounded bg-black/60 px-2 py-1 text-white transition-opacity hover:opacity-70"
+                    >
+                        CC
+                    </button>
+                    <input
+                        type="file"
+                        accept=".vtt,.srt"
+                        ref={subtitleInputRef}
+                        onChange={handleSubtitleSelect}
+                        className="hidden"
                     />
                 </div>
             )}
