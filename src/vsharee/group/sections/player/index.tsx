@@ -28,9 +28,12 @@ const GroupVideoPlayer: React.FC<GroupVideoPlayerProps> = (props: GroupVideoPlay
     const [selectedItem, setSelectedItem] = useState<{ title: string; key: VideoPlayingMethodsEnum }>();
     const [isChosen, setIsChosen] = useState(false);
     const socket = useContext(SocketContext);
-
+    const [isIdle, setIsIdle] = useState(props.groupData?.isIdle);
     useEffect(() => {
-        if (props.groupData) setMyRole(props.groupData.members.find((item) => item.user?.id === userData?.id)?.role);
+        if (props.groupData) {
+            setMyRole(props.groupData.members.find((item) => item.user?.id === userData?.id)?.role);
+            setIsIdle(props.groupData.isIdle);
+        }
     }, [props.groupData]);
 
     const handleClick = () => {
@@ -60,11 +63,18 @@ const GroupVideoPlayer: React.FC<GroupVideoPlayerProps> = (props: GroupVideoPlay
         socket?.on('contentReset', () => {
             setIsChosen(false);
             setSelectedItem(undefined);
+            setIsIdle(true);
         });
     }, []);
     return (
         <Card className={`flex-1 overflow-hidden !p-0`}>
-            {isChosen ? (
+            {!isIdle ? (
+                <div className="flex h-full w-full flex-1 items-center justify-center">
+                    <h1 className="text-md text-gray99 text-center font-medium">
+                        Video is playing in this group, wait or ask qualified persons to reset it.
+                    </h1>
+                </div>
+            ) : isChosen ? (
                 <>
                     {selectedItem?.key === VideoPlayingMethodsEnum.STREAM && <StreamVideoPlayer myRole={myRole} />}
                     {selectedItem?.key === VideoPlayingMethodsEnum.URL && <UrlVideoPlayer myRole={myRole} />}

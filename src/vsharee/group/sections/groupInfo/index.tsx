@@ -7,6 +7,7 @@ import { SocketContext } from '@/context/SocketContext';
 import { useParams } from 'react-router-dom';
 import { userDataAtom } from '@/atom';
 import { useAtomValue } from 'jotai';
+import { editGroupButtonOptionsData } from '@/vsharee/group/components/editGroupButton/data';
 
 const GroupInfoCard: React.FC<GroupInfoCardProps> = (props: GroupInfoCardProps) => {
     const [groupData, setGroupData] = useState<GroupType>();
@@ -15,6 +16,9 @@ const GroupInfoCard: React.FC<GroupInfoCardProps> = (props: GroupInfoCardProps) 
     const { id } = useParams();
     const [onlineMembers, setOnlineMembers] = useState<SocketUserType[]>();
     const userData = useAtomValue(userDataAtom);
+    const userRole = props.groupData?.members.find((groupMember) => groupMember.user?.id === userData?.id)?.role;
+    const allPermissions = editGroupButtonOptionsData.flatMap((item) => item.permission);
+    const canEdit = userRole ? allPermissions.includes(userRole) : false;
 
     useEffect(() => {
         if (props.groupData) setGroupData(props.groupData);
@@ -47,8 +51,7 @@ const GroupInfoCard: React.FC<GroupInfoCardProps> = (props: GroupInfoCardProps) 
                             <span className="flex-1" />
                         </div>
 
-                        {props.groupData?.members.find((item) => item.role === GroupRoleEnum.CREATOR)?.user?.id ===
-                            userData?.id && (
+                        {canEdit && (
                             <EditGroupButton
                                 onClick={(e) => {
                                     e.preventDefault();

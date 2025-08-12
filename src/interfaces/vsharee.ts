@@ -11,6 +11,7 @@ export interface __GroupType {
     name: string;
     description?: string;
     members: __GroupMembersType[];
+    isIdle: boolean;
 }
 export interface __UserType {
     id: string;
@@ -39,7 +40,7 @@ export enum __GroupRoleEnum {
 }
 
 export enum __VideoControlEnum {
-    PLAY = "PLAY",
-    PAUSE = "PAUSE",
-    MOVE = "MOVE"
+    PLAY = 'PLAY',
+    PAUSE = 'PAUSE',
+    MOVE = 'MOVE',
 }

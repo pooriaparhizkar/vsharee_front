@@ -17,6 +17,8 @@ import { useNavigate } from 'react-router-dom';
 import AddMemberModal from './modals/addMemberModal';
 import { editGroupButtonOptionsData } from './data';
 import { SocketContext } from '@/context/SocketContext';
+import { useAtomValue } from 'jotai';
+import { userDataAtom } from '@/atom';
 
 export default function EditGroupButton(props: EditGroupButtonProps) {
     const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -26,6 +28,7 @@ export default function EditGroupButton(props: EditGroupButtonProps) {
     const [addMemberModal, setAddMemberModal] = useState<GroupType>();
     const navigate = useNavigate();
     const socket = useContext(SocketContext);
+    const userData = useAtomValue(userDataAtom);
 
     const handleClick = (event: React.MouseEvent<HTMLElement>) => {
         event.preventDefault();
@@ -99,14 +102,21 @@ export default function EditGroupButton(props: EditGroupButtonProps) {
                 <MdMoreVert />
             </IconButton>
             <Menu anchorEl={anchorEl} open={open} onClose={handleClose}>
-                {editGroupButtonOptionsData.map((option) => (
-                    <MenuItem key={option.key} onClick={() => itemSelectHandler(option.key)}>
-                        <ListItemIcon>
-                            <option.icon />
-                        </ListItemIcon>
-                        <ListItemText> {option.label}</ListItemText>
-                    </MenuItem>
-                ))}
+                {editGroupButtonOptionsData
+                    .filter((item) => {
+                        const member = props.groupData?.members.find(
+                            (groupMember) => groupMember.user?.id === userData?.id,
+                        );
+                        return member ? item.permission.includes(member.role) : false;
+                    })
+                    .map((option) => (
+                        <MenuItem key={option.key} onClick={() => itemSelectHandler(option.key)}>
+                            <ListItemIcon>
+                                <option.icon />
+                            </ListItemIcon>
+                            <ListItemText> {option.label}</ListItemText>
+                        </MenuItem>
+                    ))}
             </Menu>
         </div>
     );
