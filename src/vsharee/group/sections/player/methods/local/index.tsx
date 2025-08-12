@@ -107,9 +107,6 @@ const LocalVideoPlayer: React.FC<LocalVideoPlayerProps> = (props: LocalVideoPlay
                     videoRef.current.currentTime = time;
                     videoRef.current.pause();
                     break;
-                case VideoControlEnum.MOVE:
-                    videoRef.current.currentTime = time;
-                    break;
             }
 
             await new Promise((resolve) => setTimeout(resolve, 250));
@@ -129,11 +126,7 @@ const LocalVideoPlayer: React.FC<LocalVideoPlayerProps> = (props: LocalVideoPlay
         });
 
         const handleSyncVideo = (data: { action: string; time: number }) => {
-            if (
-                data.action === VideoControlEnum.PLAY ||
-                data.action === VideoControlEnum.PAUSE ||
-                data.action === VideoControlEnum.MOVE
-            ) {
+            if (data.action === VideoControlEnum.PLAY || data.action === VideoControlEnum.PAUSE) {
                 actionQueue.current.push({ action: data.action, time: data.time });
                 processQueue();
             }
@@ -222,14 +215,6 @@ const LocalVideoPlayer: React.FC<LocalVideoPlayerProps> = (props: LocalVideoPlay
                 justPaused.current = false;
             }, 300);
             emitVideoControl(VideoControlEnum.PAUSE, videoRef.current.currentTime);
-        }
-    };
-
-    const handleSeeked = () => {
-        if (id && canControl && videoRef.current && !isRemoteAction.current) {
-            if (justPaused.current) return;
-            videoRef.current.pause();
-            emitVideoControl(VideoControlEnum.MOVE, videoRef.current.currentTime);
         }
     };
 
@@ -324,7 +309,6 @@ const LocalVideoPlayer: React.FC<LocalVideoPlayerProps> = (props: LocalVideoPlay
                         className="absolute inset-0 h-full w-full object-contain"
                         onPlay={handlePlay}
                         onPause={handlePause}
-                        onSeeked={handleSeeked}
                     >
                         {subtitleUrl && <track src={subtitleUrl} kind="subtitles" srcLang="en" default />}
                     </video>

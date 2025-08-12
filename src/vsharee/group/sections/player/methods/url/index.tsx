@@ -41,9 +41,6 @@ const UrlVideoPlayer: React.FC<UrlVideoPlayerProps> = (props: UrlVideoPlayerProp
                     videoRef.current.currentTime = time;
                     videoRef.current.pause();
                     break;
-                case 'MOVE':
-                    videoRef.current.currentTime = time;
-                    break;
             }
             setTimeout(() => {
                 isRemoteAction.current = false;
@@ -80,16 +77,6 @@ const UrlVideoPlayer: React.FC<UrlVideoPlayerProps> = (props: UrlVideoPlayerProp
             socket?.emit('videoControl', {
                 groupId: id,
                 action: VideoControlEnum.PAUSE,
-                time: videoRef.current.currentTime,
-            });
-        }
-    };
-
-    const handleSeeked = () => {
-        if (id && canControl && videoRef.current && !isRemoteAction.current) {
-            socket?.emit('videoControl', {
-                groupId: id,
-                action: VideoControlEnum.MOVE,
                 time: videoRef.current.currentTime,
             });
         }
@@ -145,7 +132,6 @@ const UrlVideoPlayer: React.FC<UrlVideoPlayerProps> = (props: UrlVideoPlayerProp
                         className="absolute top-0 left-0 h-full w-full"
                         onPlay={handlePlay}
                         onPause={handlePause}
-                        // onSeeked={handleSeeked}
                     >
                         {subtitleUrl && <track src={subtitleUrl} kind="subtitles" srcLang="en" default />}
                     </video>

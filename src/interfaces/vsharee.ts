@@ -42,5 +42,4 @@ export enum __GroupRoleEnum {
 export enum __VideoControlEnum {
     PLAY = 'PLAY',
     PAUSE = 'PAUSE',
-    MOVE = 'MOVE',
 }
