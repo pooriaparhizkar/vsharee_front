@@ -34,7 +34,7 @@ const DashboardMyGroupsCard: React.FC = () => {
                 selectedGroup={selectedGroup}
             />
             <Card
-                className="max-w-[326px]"
+                className="max-w-[326px] max-md:max-w-full max-md:flex-1"
                 extra={
                     <Button onClick={() => setIsCreateModalOpen(true)} variant="contained">
                         Create

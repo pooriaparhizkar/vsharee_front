@@ -5,21 +5,17 @@ import { authToken } from '@/scripts';
 import Logo from '@/assets/images/logo.png';
 import Button from '@mui/material/Button';
 import Popover from '@mui/material/Popover';
-import { useContext, useEffect, useState } from 'react';
+import { useState } from 'react';
 import MenuList from '@mui/material/MenuList';
 import MenuItem from '@mui/material/MenuItem';
-import { useNavigate } from 'react-router-dom';
 import Search from './search';
 import { Link } from 'react-router-dom';
-import { SocketContext } from '@/context/SocketContext';
 import SocketStatus from '../socketStatus';
 
 const Header: React.FC = () => {
     const [userData, setUserData] = useAtom(userDataAtom);
     const setAuthStatus = useSetAtom(authStatusAtom);
     const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
-    const navigate = useNavigate();
-    const socket = useContext(SocketContext);
     const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
         setAnchorEl(event.currentTarget);
     };
@@ -36,7 +32,7 @@ const Header: React.FC = () => {
 
     return (
         <div className="border-primary fixed top-0 left-0 z-10 flex max-h-20 min-h-20 w-full items-center justify-center border-b p-4 backdrop-blur-lg">
-            <div className="flex h-full w-full max-w-[1300px] items-center">
+            <div className="flex h-full w-full max-w-[1300px] items-center gap-2">
                 <div className="flex h-full w-full items-center gap-6">
                     <Link to="/">
                         <img className="clickable h-14" src={Logo} alt="vsharee" />

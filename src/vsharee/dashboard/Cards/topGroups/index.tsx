@@ -20,7 +20,7 @@ const DashboardTopGroupsCard: React.FC = () => {
         fetchData();
     }, []);
     return (
-        <Card className="max-w-[326px]" title="Top Groups">
+        <Card className="mt-4 max-w-[326px] max-md:max-w-full max-md:flex-1" title="Top Groups">
             {data ? (
                 data.length !== 0 ? (
                     data.map((item, index) => (

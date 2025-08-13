@@ -2,7 +2,7 @@ import DashboardIcon from '@/assets/images/dashboard-icon.svg';
 
 const DashboardInfoCard: React.FC = () => {
     return (
-        <div className="m-auto flex h-full w-[326px] flex-col items-center justify-center gap-8 px-6">
+        <div className="m-auto flex h-full w-[326px] flex-col items-center justify-center gap-8 px-6 max-md:hidden">
             <img className="mx-auto w-[250px]" src={DashboardIcon} alt="dashboard" />
             <label className="mx-auto text-center text-2xl text-white">Welcome!</label>
             <div className="flex flex-col gap-4">

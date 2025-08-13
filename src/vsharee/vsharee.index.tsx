@@ -26,7 +26,7 @@ const Vsharee: React.FC = () => {
             requestAnimationFrame(animate);
         };
 
-        animate();
+        // animate();
     }, []);
 
     return (
@@ -41,7 +41,7 @@ const Vsharee: React.FC = () => {
                             <div className="flex h-full w-full min-w-0 flex-col">
                                 <Header />
                                 <div
-                                    className={`mt-[80px] flex h-full max-h-[calc(100vh-80px)] min-h-[calc(100vh-80px)] flex-1 flex-col overflow-auto p-4 transition-all`}
+                                    className={`mt-[80px] flex h-full max-h-[calc(100vh-80px)] min-h-[calc(100vh-80px)] flex-1 flex-col overflow-auto p-4 transition-all max-md:max-h-[calc(100vh-160px)] max-md:min-h-[calc(100vh-160px)]`}
                                 >
                                     <Routes>
                                         <Route path={PATH.dashboard} element={<Dashboard />} />
