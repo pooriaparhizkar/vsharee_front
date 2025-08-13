@@ -102,7 +102,7 @@ const FormGroupModal: React.FC<FormGroupModalType> = (props: FormGroupModalType)
             onClose={() => closeModal()}
             title={`${props.selectedGroup ? 'Edit' : 'Create'} Group`}
         >
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 pt-2">
                 <Input
                     required
                     label="ID"

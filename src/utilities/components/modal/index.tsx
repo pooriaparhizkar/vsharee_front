@@ -35,10 +35,12 @@ export default function Modal(props: ModalProps) {
         >
             <Fade in={props.isOpen}>
                 <div
-                    style={props.width ? { width: props.width } : undefined}
-                    className={`absolute top-1/2 left-1/2 w-[400px] -translate-x-1/2 -translate-y-1/2 transform outline-none`}
+                    style={{ maxWidth: props.width ?? 400 }}
+                    className={`absolute top-1/2 left-1/2 w-full -translate-x-1/2 -translate-y-1/2 transform overflow-hidden outline-none`}
                 >
-                    <Card title={props.title}>{props.children}</Card>
+                    <Card title={props.title}>
+                        <div className="max-h-[500px] overflow-auto">{props.children}</div>
+                    </Card>
                 </div>
             </Fade>
         </MuiModal>

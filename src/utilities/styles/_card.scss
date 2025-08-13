@@ -48,10 +48,14 @@
         left: 0;
 
         transform: translateX(-100%);
-        background-image: linear-gradient(90deg,
-                rgba(references.$dark06, 0) 0, // Use a very light gray for the start
-                rgba(references.$dark06, 0.2) 50%, // Slightly darker gray for shimmer effect
-                rgba(references.$dark06, 0)); // Fade out to transparent
+        background-image: linear-gradient(
+            90deg,
+            rgba(references.$dark06, 0) 0,
+            // Use a very light gray for the start
+            rgba(references.$dark06, 0.2) 50%,
+            // Slightly darker gray for shimmer effect
+            rgba(references.$dark06, 0)
+        ); // Fade out to transparent
         animation: skeleton-background-animation 1.5s infinite; // Adjust animation speed if needed
         content: '';
     }
@@ -63,14 +67,12 @@
     }
 }
 
-
 .clickable {
     cursor: pointer;
     transition: opacity 0.2s ease-in-out;
 
     &:hover {
         opacity: 0.5;
-
     }
 }
 
@@ -81,4 +83,8 @@ input:-webkit-autofill:active {
     -webkit-box-shadow: 0 0 0 60px references.$background inset !important;
     background-color: references.$background !important;
     background-clip: content-box !important;
+}
+
+.MuiModal-root {
+    margin: 0 16px;
 }
