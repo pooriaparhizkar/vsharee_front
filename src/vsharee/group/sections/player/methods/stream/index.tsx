@@ -199,11 +199,64 @@ const StreamVideoPlayer: React.FC<StreamVideoPlayerProps> = (props: StreamVideoP
             setTimeout(() => {
                 if (localVideoRef.current) {
                     const videoEl = localVideoRef.current as HTMLVideoElement & {
-                        captureStream: () => MediaStream;
+                        captureStream?: () => MediaStream;
                     };
-                    const stream = videoEl.captureStream();
-                    console.log('Captured stream tracks:', stream.getTracks());
-                    startWebRTC(stream);
+
+                    if (typeof videoEl.captureStream === 'function') {
+                        console.log('Using videoEl.captureStream() to capture stream');
+                        const stream = videoEl.captureStream();
+                        console.log('Captured stream tracks:', stream.getTracks());
+                        startWebRTC(stream);
+                    } else {
+                        console.log('captureStream not available, using canvas + audio fallback');
+                        const canvas = document.createElement('canvas');
+                        canvas.width = videoEl.videoWidth || 640;
+                        canvas.height = videoEl.videoHeight || 360;
+                        const ctx = canvas.getContext('2d');
+
+                        const drawFrame = () => {
+                            if (ctx && videoEl.paused === false && videoEl.ended === false) {
+                                ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+                            }
+                        };
+
+                        const intervalId = setInterval(drawFrame, 33); // approx 30fps
+
+                        // --- AudioContext and merging audio with canvas video stream ---
+                        // Create AudioContext and connect video element source to a destination node
+                        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+                        const sourceNode = audioContext.createMediaElementSource(videoEl);
+                        const dest = audioContext.createMediaStreamDestination();
+                        // Connect to both destination and speakers
+                        sourceNode.connect(dest);
+                        sourceNode.connect(audioContext.destination);
+
+                        // Get the video stream from the canvas
+                        const videoStream = canvas.captureStream();
+                        // Get the audio tracks from the audio destination
+                        const audioTracks = dest.stream.getAudioTracks();
+                        // Merge tracks into a single MediaStream
+                        const mergedStream = new MediaStream([...videoStream.getVideoTracks(), ...audioTracks]);
+                        console.log('Merged canvas video and audio tracks:', mergedStream.getTracks());
+                        startWebRTC(mergedStream);
+
+                        // Cleanup interval and audio context when video ends or is paused
+                        const cleanup = () => {
+                            clearInterval(intervalId);
+                            videoEl.removeEventListener('pause', cleanup);
+                            videoEl.removeEventListener('ended', cleanup);
+                            // Disconnect audio nodes and close context for cleanup
+                            try {
+                                sourceNode.disconnect();
+                                dest.disconnect();
+                                audioContext.close();
+                            } catch (e) {
+                                // ignore
+                            }
+                        };
+                        videoEl.addEventListener('pause', cleanup);
+                        videoEl.addEventListener('ended', cleanup);
+                    }
                 } else {
                     console.warn('localVideoRef.current not found');
                 }
@@ -239,6 +292,7 @@ const StreamVideoPlayer: React.FC<StreamVideoPlayerProps> = (props: StreamVideoP
                             src={videoURL}
                             autoPlay
                             controls
+                            playsInline
                             className="absolute inset-0 h-full w-full object-contain"
                         >
                             {subtitleUrl && <track src={subtitleUrl} kind="subtitles" srcLang="en" default />}
@@ -260,26 +314,26 @@ const StreamVideoPlayer: React.FC<StreamVideoPlayerProps> = (props: StreamVideoP
                 </div>
             ) : (
                 <>
-                    {myRole && [GroupRoleEnum.CONTROLLER, GroupRoleEnum.CREATOR].includes(myRole) ? (
-                        <>
-                            <input
-                                type="file"
-                                accept="video/*"
-                                onChange={handleVideoSelect}
-                                ref={fileInputRef}
-                                className="hidden"
-                            />
-                            <Button variant="contained" onClick={triggerFileSelect}>
-                                Select Video
-                            </Button>
-                        </>
-                    ) : (
-                        <div style={{ display: isRemotePlaying ? 'none' : 'block' }}>
+                    <div style={{ display: isRemotePlaying ? 'none' : 'block' }}>
+                        {myRole && [GroupRoleEnum.CONTROLLER, GroupRoleEnum.CREATOR].includes(myRole) ? (
+                            <>
+                                <input
+                                    type="file"
+                                    accept="video/*"
+                                    onChange={handleVideoSelect}
+                                    ref={fileInputRef}
+                                    className="hidden"
+                                />
+                                <Button variant="contained" onClick={triggerFileSelect}>
+                                    Select Video
+                                </Button>
+                            </>
+                        ) : (
                             <h1 className="text-md text-gray99 font-medium">
                                 Wait for qualified people to select the video...
                             </h1>
-                        </div>
-                    )}
+                        )}{' '}
+                    </div>
                     <div style={{ display: isRemotePlaying ? 'block' : 'none' }} className="relative h-full w-full">
                         <video
                             controls={myRole && [GroupRoleEnum.CONTROLLER, GroupRoleEnum.CREATOR].includes(myRole)}
