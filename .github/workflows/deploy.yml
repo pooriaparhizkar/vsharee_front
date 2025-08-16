@@ -15,8 +15,10 @@ jobs:
             - name: Prepare SSH
               run: |
                   mkdir -p ~/.ssh
-                  echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_ed25519
+                  # Write the SSH private key from your secret to a file
+                  echo "${{ secrets.SSH_KEY }}" | tr -d '\r' > ~/.ssh/id_ed25519
                   chmod 600 ~/.ssh/id_ed25519
+                  # Trust the server host key so ssh/scp won't prompt
                   ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
 
             - name: Deploy on server
