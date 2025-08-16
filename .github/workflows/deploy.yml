@@ -9,13 +9,13 @@ jobs:
         runs-on: ubuntu-latest
 
         steps:
-            - name: Checkout (not strictly needed, but ok)
+            - name: Checkout (optional)
               uses: actions/checkout@v4
 
             - name: Prepare SSH
               run: |
                   mkdir -p ~/.ssh
-                  # Write the SSH private key from your secret to a file
+                  # Write the SSH private key from your GitHub secret
                   echo "${{ secrets.SSH_KEY }}" | tr -d '\r' > ~/.ssh/id_ed25519
                   chmod 600 ~/.ssh/id_ed25519
                   # Trust the server host key so ssh/scp won't prompt
@@ -27,16 +27,20 @@ jobs:
                   SSH_USER: ${{ secrets.SSH_USER }}
                   APP_DIR: ${{ secrets.APP_DIR }}
               run: |
-                  ssh -i ~/.ssh/id_ed25519 ${SSH_USER}@${SSH_HOST} << 'EOF'
+                  ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/id_ed25519 ${SSH_USER}@${SSH_HOST} << EOF
                   set -euo pipefail
+
+                  # Pull latest frontend code on the server
                   cd ${APP_DIR}/vsharee_front
                   git fetch --all
                   git checkout production || git checkout -b production
                   git reset --hard origin/production
 
+                  # Rebuild and restart only the frontend service
                   cd ${APP_DIR}
                   docker compose build frontend
                   docker compose up -d --no-deps frontend
-                  # reload caddy just in case (won't hurt)
+
+                  # Reload Caddy (safe if already loaded)
                   docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile || true
                   EOF
