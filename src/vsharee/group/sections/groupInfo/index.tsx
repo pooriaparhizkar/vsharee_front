@@ -5,8 +5,8 @@ import { GroupInfoCardProps } from './type';
 import { GroupDetailModal, EditGroupButton } from '@/vsharee/group/components';
 import { SocketContext } from '@/context/SocketContext';
 import { useParams } from 'react-router-dom';
-import { userDataAtom } from '@/atom';
-import { useAtomValue } from 'jotai';
+import { livekitAuthAtom, userDataAtom } from '@/atom';
+import { useAtomValue, useSetAtom } from 'jotai';
 import { editGroupButtonOptionsData } from '@/vsharee/group/components/editGroupButton/data';
 
 const GroupInfoCard: React.FC<GroupInfoCardProps> = (props: GroupInfoCardProps) => {
@@ -19,6 +19,7 @@ const GroupInfoCard: React.FC<GroupInfoCardProps> = (props: GroupInfoCardProps) 
     const userRole = props.groupData?.members.find((groupMember) => groupMember.user?.id === userData?.id)?.role;
     const allPermissions = editGroupButtonOptionsData.flatMap((item) => item.permission);
     const canEdit = userRole ? allPermissions.includes(userRole) : false;
+    const setLKAuth = useSetAtom(livekitAuthAtom);
 
     useEffect(() => {
         if (props.groupData) setGroupData(props.groupData);
@@ -29,8 +30,16 @@ const GroupInfoCard: React.FC<GroupInfoCardProps> = (props: GroupInfoCardProps) 
             socket?.emit('joinGroup', { groupId: id });
         }
         socket?.on('joinedGroup', (res) => setOnlineMembers(res.onlineMembers));
-        socket?.on('userJoined', (res) => {
-            setOnlineMembers((prev) => [...(prev || []), res]);
+        socket?.on('joinedGroup', (res) => {
+            // keep your onlineMembers logic
+            setOnlineMembers(res.onlineMembers);
+
+            // 🔑 stash auth for the StreamPanel
+            const url = res.lkUrl ?? import.meta.env.VITE_LIVEKIT_URL;
+            setLKAuth({
+                url,
+                token: res.lkToken
+            });
         });
         socket?.on('userLeft', (res) => {
             setOnlineMembers((prev) => prev?.filter((item) => item.id !== res.id));
@@ -43,7 +52,7 @@ const GroupInfoCard: React.FC<GroupInfoCardProps> = (props: GroupInfoCardProps) 
     return (
         <>
             <Card onClick={() => setIsGroupDetailModalOpen(true)}>
-                <div onClick={(e) => {}} className="flex cursor-pointer flex-col gap-1">
+                <div onClick={(e) => { }} className="flex cursor-pointer flex-col gap-1">
                     <div className="flex items-center">
                         <div className="flex h-full w-full items-center gap-2">
                             <h1 className="text-md font-medium">{groupData?.name}</h1>

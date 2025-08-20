@@ -21,6 +21,10 @@ export interface __UserType {
     groups: __GroupType[];
 }
 
+export interface __LivekitAuthType {
+    url: string | null;
+    token: string | null;
+}
 export interface __loginType {
     token: string;
     user: __UserType;

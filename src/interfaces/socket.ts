@@ -12,7 +12,7 @@ export interface __SocketMessageType {
 }
 export interface __ServerToClientEvents {
     connect: () => void;
-    joinedGroup: (data: { onlineMembers: __SocketUserType[] }) => void;
+    joinedGroup: (data: { onlineMembers: __SocketUserType[]; lkToken: string; lkUrl: string }) => void;
     userJoined: (data: __SocketUserType) => void;
     newMessage: (data: __SocketMessageType) => void;
     messageSent: (data: any) => void;

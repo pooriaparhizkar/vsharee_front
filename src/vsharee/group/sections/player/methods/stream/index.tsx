@@ -1,367 +1,66 @@
-import { SocketContext } from '@/context/SocketContext';
-import { useContext, useState, useRef, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import Button from '@mui/material/Button';
-import { GroupRoleEnum } from '@/interfaces';
+// src/vsharee/group/StreamPanel.tsx
+import { useEffect, useRef, useState } from 'react';
 import { useAtomValue } from 'jotai';
-import { userDataAtom } from '@/atom';
+import { useLiveKit } from '@/livekit/useLiveKit';
+import { Room, RoomEvent, RemoteTrack, RemoteTrackPublication } from 'livekit-client';
+import { livekitAuthAtom } from '@/atom';
 import { StreamVideoPlayerProps } from './type';
-import { srtToVttBrowser } from '@/scripts';
+import { GroupRoleEnum } from '@/interfaces';
+import HostControls from './hostControl';
 
 const StreamVideoPlayer: React.FC<StreamVideoPlayerProps> = (props: StreamVideoPlayerProps) => {
+    const auth = useAtomValue(livekitAuthAtom);
+    const { room } = useLiveKit(); // connects when auth present
+    const viewerRef = useRef<HTMLVideoElement>(null);
     const [myRole, setMyRole] = useState<GroupRoleEnum>();
-    const socket = useContext(SocketContext);
-    const { id } = useParams();
-    const [videoURL, setVideoURL] = useState<string | null>(null);
-
-    const fileInputRef = useRef<HTMLInputElement | null>(null);
-    const localVideoRef = useRef<HTMLVideoElement | null>(null);
-    const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
-    const peerConnection = useRef<RTCPeerConnection | null>(null);
-    let pendingRemoteAnswer: RTCSessionDescriptionInit | null = null;
-    const remoteDescriptionSet = useRef(false);
-    const subtitleInputRef = useRef<HTMLInputElement | null>(null);
-    const [subtitleUrl, setSubtitleUrl] = useState<string>('');
-
-    // NEW: visibility flags; videos are hidden until they actually start playing
-    const [isLocalPlaying, setIsLocalPlaying] = useState(false);
-    const [isRemotePlaying, setIsRemotePlaying] = useState(false);
-
-    const triggerFileSelect = () => {
-        fileInputRef.current?.click();
-    };
+    const canControl = myRole && [GroupRoleEnum.CONTROLLER, GroupRoleEnum.CREATOR].includes(myRole);
 
     useEffect(() => {
         if (props.myRole) setMyRole(props.myRole);
     }, [props.myRole]);
 
-    // NEW: attach 'playing' listeners so visibility flips when playback starts
+    // viewer subscription
     useEffect(() => {
-        const lv = localVideoRef.current;
-        if (!lv) return;
+        if (!room) return;
 
-        const onLocalPlaying = () => setIsLocalPlaying(true);
-        lv.addEventListener('playing', onLocalPlaying);
+        const onSubscribed = (track: RemoteTrack, pub: RemoteTrackPublication) => {
+            if (track.kind === 'video' && viewerRef.current) {
+                const ms = new MediaStream([track.mediaStreamTrack]);
+                viewerRef.current.srcObject = ms;
+                viewerRef.current.playsInline = true;
+                viewerRef.current.autoplay = true;
+                viewerRef.current.play().catch(() => { });
+            }
+            if (track.kind === 'audio') {
+                const audio = new Audio();
+                audio.srcObject = new MediaStream([track.mediaStreamTrack]);
+                audio.play().catch(() => { });
+            }
+        };
+
+        const clearVideo = () => {
+            if (viewerRef.current) viewerRef.current.srcObject = null;
+        };
+
+        room.on(RoomEvent.TrackSubscribed, onSubscribed);
+        room.on(RoomEvent.TrackUnsubscribed, clearVideo);
+        room.on(RoomEvent.Disconnected, clearVideo);
 
         return () => {
-            lv.removeEventListener('playing', onLocalPlaying);
+            room.off(RoomEvent.TrackSubscribed, onSubscribed);
+            room.off(RoomEvent.TrackUnsubscribed, clearVideo);
+            room.off(RoomEvent.Disconnected, clearVideo);
         };
-    }, [videoURL]);
-
-    useEffect(() => {
-        const rv = remoteVideoRef.current;
-        if (!rv) return;
-
-        const onRemotePlaying = () => setIsRemotePlaying(true);
-        rv.addEventListener('playing', onRemotePlaying);
-
-        return () => {
-            rv.removeEventListener('playing', onRemotePlaying);
-        };
-    }, []);
-
-    useEffect(() => {
-        socket?.on('videoOffer', async ({ offer }) => {
-            console.log('Received videoOffer');
-            peerConnection.current = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
-
-            peerConnection.current.onicecandidate = (event) => {
-                if (event.candidate) {
-                    socket?.emit('iceCandidate', {
-                        candidate: event.candidate,
-                        groupId: id!,
-                    });
-                }
-            };
-
-            const remoteStream = new MediaStream();
-            let hasSetRemote = false;
-
-            peerConnection.current.ontrack = (event) => {
-                console.log('ontrack fired:', event.track.kind, event.track);
-                remoteStream.addTrack(event.track);
-
-                if (!hasSetRemote && remoteVideoRef.current) {
-                    const videoEl = remoteVideoRef.current;
-                    videoEl.srcObject = remoteStream;
-                    hasSetRemote = true;
-                    console.log('Set remoteVideoRef srcObject');
-
-                    videoEl.onloadedmetadata = () => {
-                        console.log('Remote video metadata loaded');
-                        videoEl
-                            .play()
-                            .then(() => {
-                                console.log('Remote video playback started');
-                                console.log('Remote video dimensions:', videoEl.videoWidth, videoEl.videoHeight);
-                                // visibility for remote will flip on 'playing' event
-                            })
-                            .catch((err) => {
-                                console.error('play() failed after metadata:', err);
-                            });
-                    };
-                }
-            };
-
-            await peerConnection.current.setRemoteDescription(new RTCSessionDescription(offer));
-            remoteDescriptionSet.current = true;
-            if (pendingRemoteAnswer) {
-                console.log('Applying stored answer after remote offer set');
-                await peerConnection.current.setRemoteDescription(new RTCSessionDescription(pendingRemoteAnswer));
-                pendingRemoteAnswer = null;
-            }
-            console.log('Remote description set. Receivers:', peerConnection.current.getReceivers());
-            const answer = await peerConnection.current.createAnswer();
-            await peerConnection.current.setLocalDescription(answer);
-            socket?.emit('videoAnswer', {
-                answer,
-                groupId: id!,
-            });
-        });
-
-        socket?.on('videoAnswer', async ({ answer }) => {
-            console.log('Received videoAnswer');
-            if (peerConnection.current?.signalingState === 'have-local-offer') {
-                console.log('Setting remote description with answer');
-                await peerConnection.current.setRemoteDescription(new RTCSessionDescription(answer));
-            } else if (peerConnection.current?.signalingState === 'stable') {
-                console.warn('Already in stable state, ignoring duplicate answer');
-            } else {
-                console.warn('Signaling not ready. Storing answer for later');
-                pendingRemoteAnswer = answer;
-            }
-        });
-
-        socket?.on('iceCandidate', async ({ candidate }) => {
-            console.log('Received iceCandidate');
-            await peerConnection.current?.addIceCandidate(new RTCIceCandidate(candidate));
-        });
-
-        return () => {
-            socket?.off('videoOffer');
-            socket?.off('videoAnswer');
-            socket?.off('iceCandidate');
-        };
-    }, []);
-
-    const startWebRTC = async (stream: MediaStream) => {
-        console.log('Starting WebRTC setup with stream:', stream);
-        peerConnection.current = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
-
-        peerConnection.current.onicecandidate = (event) => {
-            if (event.candidate) {
-                console.log('Emitting ICE candidate');
-                socket?.emit('iceCandidate', {
-                    candidate: event.candidate,
-                    groupId: id!,
-                });
-            }
-        };
-
-        stream.getTracks().forEach((track) => {
-            console.log('Adding track to peerConnection:', track);
-            peerConnection.current?.addTrack(track, stream);
-        });
-
-        const offer = await peerConnection.current.createOffer();
-        await peerConnection.current.setLocalDescription(offer);
-
-        peerConnection.current.onsignalingstatechange = async () => {
-            if (peerConnection.current?.signalingState === 'have-local-offer' && pendingRemoteAnswer) {
-                console.log('Applying pending remote answer');
-                await peerConnection.current.setRemoteDescription(new RTCSessionDescription(pendingRemoteAnswer));
-                pendingRemoteAnswer = null;
-            }
-        };
-
-        setTimeout(async () => {
-            if (peerConnection.current?.signalingState === 'have-local-offer' && pendingRemoteAnswer) {
-                console.log('Fallback: applying delayed remote answer');
-                await peerConnection.current.setRemoteDescription(new RTCSessionDescription(pendingRemoteAnswer));
-                pendingRemoteAnswer = null;
-            }
-        }, 500);
-
-        console.log('Emitting videoOffer with SDP');
-        socket?.emit('videoOffer', {
-            offer,
-            groupId: id!,
-        });
-    };
-
-    const handleVideoSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (file) {
-            const url = URL.createObjectURL(file);
-            setVideoURL(url);
-            setIsLocalPlaying(false); // ensure hidden again for each new selection
-
-            setTimeout(() => {
-                if (localVideoRef.current) {
-                    const videoEl = localVideoRef.current as HTMLVideoElement & {
-                        captureStream?: () => MediaStream;
-                    };
-
-                    if (typeof videoEl.captureStream === 'function') {
-                        console.log('Using videoEl.captureStream() to capture stream');
-                        const stream = videoEl.captureStream();
-                        console.log('Captured stream tracks:', stream.getTracks());
-                        startWebRTC(stream);
-                    } else {
-                        console.log('captureStream not available, using canvas + audio fallback');
-                        const canvas = document.createElement('canvas');
-                        canvas.width = videoEl.videoWidth || 640;
-                        canvas.height = videoEl.videoHeight || 360;
-                        const ctx = canvas.getContext('2d');
-
-                        const drawFrame = () => {
-                            if (ctx && videoEl.paused === false && videoEl.ended === false) {
-                                ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
-                            }
-                        };
-
-                        const intervalId = setInterval(drawFrame, 33); // approx 30fps
-
-                        // --- AudioContext and merging audio with canvas video stream ---
-                        // Create AudioContext and connect video element source to a destination node
-                        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-                        const sourceNode = audioContext.createMediaElementSource(videoEl);
-                        const dest = audioContext.createMediaStreamDestination();
-                        // Connect to both destination and speakers
-                        sourceNode.connect(dest);
-                        sourceNode.connect(audioContext.destination);
-
-                        // Get the video stream from the canvas
-                        const videoStream = canvas.captureStream();
-                        // Get the audio tracks from the audio destination
-                        const audioTracks = dest.stream.getAudioTracks();
-                        // Merge tracks into a single MediaStream
-                        const mergedStream = new MediaStream([...videoStream.getVideoTracks(), ...audioTracks]);
-                        console.log('Merged canvas video and audio tracks:', mergedStream.getTracks());
-                        startWebRTC(mergedStream);
-
-                        // Cleanup interval and audio context when video ends or is paused
-                        const cleanup = () => {
-                            clearInterval(intervalId);
-                            videoEl.removeEventListener('pause', cleanup);
-                            videoEl.removeEventListener('ended', cleanup);
-                            // Disconnect audio nodes and close context for cleanup
-                            try {
-                                sourceNode.disconnect();
-                                dest.disconnect();
-                                audioContext.close();
-                            } catch (e) {
-                                // ignore
-                            }
-                        };
-                        videoEl.addEventListener('pause', cleanup);
-                        videoEl.addEventListener('ended', cleanup);
-                    }
-                } else {
-                    console.warn('localVideoRef.current not found');
-                }
-            }, 500);
-        }
-    };
-
-    const handleSubtitleSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (!e.target.files?.length) return;
-        const file = e.target.files[0];
-
-        if (file.name.toLowerCase().endsWith('.srt')) {
-            const srtText = await file.text();
-            const vttText = srtToVttBrowser(srtText);
-            const vttBlob = new Blob([vttText], { type: 'text/vtt' });
-            const vttUrl = URL.createObjectURL(vttBlob);
-            setSubtitleUrl(vttUrl);
-        } else {
-            const url = URL.createObjectURL(file);
-            setSubtitleUrl(url);
-        }
-    };
+    }, [room]);
 
     return (
-        <div
-            className={`flex flex-1 items-center justify-center ${isLocalPlaying || isRemotePlaying ? '!bg-black !p-0' : ''}`}
-        >
-            {videoURL ? (
-                <div style={{ display: isLocalPlaying ? 'block' : 'none' }} className="h-full w-full py-4">
-                    <div className="relative h-full w-full">
-                        <video
-                            ref={localVideoRef}
-                            src={videoURL}
-                            autoPlay
-                            controls
-                            playsInline
-                            className="absolute inset-0 h-full w-full object-contain"
-                        >
-                            {subtitleUrl && <track src={subtitleUrl} kind="subtitles" srcLang="en" default />}
-                        </video>
-                        <button
-                            onClick={() => subtitleInputRef.current?.click()}
-                            className="absolute top-3 right-3 cursor-pointer rounded bg-black/60 px-2 py-1 text-white transition-opacity hover:opacity-70"
-                        >
-                            CC
-                        </button>
-                        <input
-                            type="file"
-                            accept=".vtt,.srt"
-                            ref={subtitleInputRef}
-                            onChange={handleSubtitleSelect}
-                            className="hidden"
-                        />
-                    </div>
-                </div>
-            ) : (
-                <>
-                    <div style={{ display: isRemotePlaying ? 'none' : 'block' }}>
-                        {myRole && [GroupRoleEnum.CONTROLLER, GroupRoleEnum.CREATOR].includes(myRole) ? (
-                            <>
-                                <input
-                                    type="file"
-                                    accept="video/*"
-                                    onChange={handleVideoSelect}
-                                    ref={fileInputRef}
-                                    className="hidden"
-                                />
-                                <Button variant="contained" onClick={triggerFileSelect}>
-                                    Select Video
-                                </Button>
-                            </>
-                        ) : (
-                            <h1 className="text-md text-gray99 font-medium">
-                                Wait for qualified people to select the video...
-                            </h1>
-                        )}{' '}
-                    </div>
-                    <div style={{ display: isRemotePlaying ? 'block' : 'none' }} className="relative h-full w-full">
-                        <video
-                            controls={myRole && [GroupRoleEnum.CONTROLLER, GroupRoleEnum.CREATOR].includes(myRole)}
-                            ref={remoteVideoRef}
-                            autoPlay
-                            playsInline
-                            className="absolute inset-0 h-full w-full object-contain"
-                        >
-                            {subtitleUrl && <track src={subtitleUrl} kind="subtitles" srcLang="en" default />}
-                            <button
-                                onClick={() => subtitleInputRef.current?.click()}
-                                className="absolute top-3 right-3 cursor-pointer rounded bg-black/60 px-2 py-1 text-white transition-opacity hover:opacity-70"
-                            >
-                                CC
-                            </button>
-                            <input
-                                type="file"
-                                accept=".vtt,.srt"
-                                ref={subtitleInputRef}
-                                onChange={handleSubtitleSelect}
-                                className="hidden"
-                            />
-                        </video>
-                    </div>
-                </>
-            )}
+        <div className="space-y-3">
+            {canControl && room && <HostControls room={room} />}
+
+            <div className="rounded-xl overflow-hidden">
+                <video ref={viewerRef} controls className="w-full bg-black" />
+            </div>
         </div>
     );
-};
-
+}
 export default StreamVideoPlayer;
