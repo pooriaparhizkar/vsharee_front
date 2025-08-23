@@ -279,15 +279,6 @@ export default function HostControls({ room }: { room: Room }) {
         });
         try { await v.play(); } catch { }
 
-        // Broadcast state changes to everyone
-        const onPlay = () => emitSync(VideoControlEnum.PLAY, v.currentTime || 0);
-        const onPause = () => emitSync(VideoControlEnum.PAUSE, v.currentTime || 0);
-        const onSeeked = () => emitSync(v.paused ? VideoControlEnum.PAUSE : VideoControlEnum.PLAY, v.currentTime || 0);
-
-        v.addEventListener('play', onPlay);
-        v.addEventListener('pause', onPause);
-        v.addEventListener('seeked', onSeeked);
-
         let stream: MediaStream | undefined;
 
         if (SUPPORT.videoCaptureStream) {

@@ -29,7 +29,6 @@ const GroupInfoCard: React.FC<GroupInfoCardProps> = (props: GroupInfoCardProps) 
         if (id) {
             socket?.emit('joinGroup', { groupId: id });
         }
-        socket?.on('joinedGroup', (res) => setOnlineMembers(res.onlineMembers));
         socket?.on('joinedGroup', (res) => {
             // keep your onlineMembers logic
             setOnlineMembers(res.onlineMembers);
@@ -41,6 +40,12 @@ const GroupInfoCard: React.FC<GroupInfoCardProps> = (props: GroupInfoCardProps) 
                 token: res.lkToken
             });
         });
+
+
+        socket?.on('userJoined', (res) => {
+            setOnlineMembers((prev) => prev?.filter((item) => item.id !== res.id).concat(res));
+        });
+
         socket?.on('userLeft', (res) => {
             setOnlineMembers((prev) => prev?.filter((item) => item.id !== res.id));
         });
