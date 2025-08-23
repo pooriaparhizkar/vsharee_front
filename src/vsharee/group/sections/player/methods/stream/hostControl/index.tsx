@@ -1,16 +1,40 @@
 import { Room, RoomEvent } from 'livekit-client';
 import { useEffect, useRef, useState } from 'react';
 
+function isIOS() {
+    if (typeof navigator === 'undefined') return false;
+    return /iPad|iPhone|iPod/.test(navigator.userAgent);
+}
+
+function hasGetDisplayMedia() {
+    return typeof (navigator.mediaDevices as any)?.getDisplayMedia === 'function';
+}
+
+function hasVideoCaptureStream() {
+    return typeof (HTMLVideoElement.prototype as any).captureStream === 'function';
+}
+
+function hasCanvasCaptureStream() {
+    return typeof HTMLCanvasElement.prototype.captureStream === 'function';
+}
+
 export default function HostControls({ room }: { room: Room }) {
     const hiddenRef = useRef<HTMLVideoElement>(null);
     const previewRef = useRef<HTMLVideoElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const rafRef = useRef<number | null>(null);
+
     const [publishing, setPublishing] = useState(false);
     const [pubTrackSids, setPubTrackSids] = useState<string[]>([]);
     const audioCtxRef = useRef<AudioContext | null>(null);
 
-    // --- Audio helpers (Safari/iOS friendly) ---
+    const SUPPORT = {
+        getDisplayMedia: hasGetDisplayMedia(),
+        videoCaptureStream: hasVideoCaptureStream(),
+        canvasCaptureStream: hasCanvasCaptureStream(),
+    };
 
-    // Create/return an AudioContext and ensure it's resumed (must be called after a user gesture)
+    // --- Audio helpers (Safari/iOS friendly) ---
     async function ensureAudioContext(): Promise<AudioContext | null> {
         if (!audioCtxRef.current) {
             try {
@@ -92,14 +116,10 @@ export default function HostControls({ room }: { room: Room }) {
             if (pubTrackSids.includes(pub.trackSid) && pub.track) {
                 try {
                     room.localParticipant.unpublishTrack(pub.track);
-                } catch {
-                    /* ignore */
-                }
+                } catch { }
                 try {
                     pub.track.stop();
-                } catch {
-                    /* ignore */
-                }
+                } catch { }
             }
         });
         setPubTrackSids([]);
@@ -107,9 +127,7 @@ export default function HostControls({ room }: { room: Room }) {
 
         const v = hiddenRef.current!;
         if (v) {
-            try {
-                v.pause();
-            } catch { }
+            try { v.pause(); } catch { }
             v.src = '';
             v.onended = null;
         }
@@ -117,10 +135,12 @@ export default function HostControls({ room }: { room: Room }) {
             (previewRef.current as HTMLVideoElement).srcObject = null;
         }
         if (audioCtxRef.current) {
-            try {
-                await audioCtxRef.current.close();
-            } catch { }
+            try { await audioCtxRef.current.close(); } catch { }
             audioCtxRef.current = null;
+        }
+        if (rafRef.current) {
+            cancelAnimationFrame(rafRef.current);
+            rafRef.current = null;
         }
     }
 
@@ -129,37 +149,66 @@ export default function HostControls({ room }: { room: Room }) {
         if (publishing) await stop();
     }
 
-    // --- Publish from local file via captureStream() ---
+    // --- Canvas fallback for iOS (and browsers without video.captureStream) ---
+    function startCanvasPipe(v: HTMLVideoElement): MediaStream | undefined {
+        const canvas = canvasRef.current;
+        if (!canvas || !SUPPORT.canvasCaptureStream) return undefined;
+
+        canvas.width = v.videoWidth || 1280;
+        canvas.height = v.videoHeight || 720;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return undefined;
+
+        const draw = () => {
+            try {
+                ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+            } catch { }
+            rafRef.current = requestAnimationFrame(draw);
+        };
+        draw();
+
+        const stream = canvas.captureStream(30);
+        return stream;
+    }
+
+    // --- Publish from local file via captureStream() or canvas fallback ---
     async function publishFromFile(file: File) {
         await replaceIfPublishing();
 
         const v = hiddenRef.current!;
-        // Prepare element
         v.src = URL.createObjectURL(file);
         v.crossOrigin = 'anonymous';
         v.muted = true; // do not play via speakers; audio is routed via WebAudio when needed
         v.playsInline = true;
 
-        // Safari: wait for metadata before play (and before creating WebAudio node)
         await new Promise<void>((resolve) => {
             const ready = () => resolve();
             v.onloadedmetadata = ready;
             v.oncanplay = ready;
         });
-        try {
-            await v.play();
-        } catch {
-            /* ignore */
+        try { await v.play(); } catch { }
+
+        let stream: MediaStream | undefined;
+
+        if (SUPPORT.videoCaptureStream) {
+            stream = (v as any).captureStream?.();
         }
 
-        // Try native captureStream()
-        let stream: MediaStream | undefined = (v as any).captureStream?.();
+        // If no native capture, try canvas fallback
         if (!stream) {
-            alert('Your browser does not support captureStream(). Try “Share screen/tab”.');
+            stream = startCanvasPipe(v);
+        }
+
+        if (!stream) {
+            alert(
+                isIOS()
+                    ? 'iOS Safari does not support streaming local files directly. Please use Screen/Tab share or switch to desktop.'
+                    : 'Your browser does not support captureStream/canvas capture. Try a different browser.'
+            );
             return;
         }
 
-        // If the captured stream has no audio, synthesize via WebAudio (Safari/iOS)
+        // Add audio track via WebAudio if needed (common on iOS)
         if (stream.getAudioTracks().length === 0) {
             const aTrack = await audioTrackFromVideoElement(v);
             if (aTrack) {
@@ -172,21 +221,28 @@ export default function HostControls({ room }: { room: Room }) {
         setPublishing(true);
         await publishTracks(stream);
 
-        // Stop when the <video> finishes
-        v.onended = () => {
-            stop();
-        };
+        v.onended = () => { stop(); };
     }
 
-    // --- Screen/tab share (desktop). iOS/Safari cannot share system audio; fallback to mic. ---
+    // --- Screen/tab share ---
     async function shareScreen() {
         await replaceIfPublishing();
+
+        if (!SUPPORT.getDisplayMedia) {
+            alert(
+                isIOS()
+                    ? 'Screen sharing requires iOS 17+ (Safari) and is not available on some iPhone models. Try updating iOS or use a desktop.'
+                    : 'Screen capture API (getDisplayMedia) is not supported in this browser.'
+            );
+            return;
+        }
 
         let display: MediaStream;
         try {
             display = await (navigator.mediaDevices as any).getDisplayMedia({
                 video: { frameRate: 30 },
-                audio: { systemAudio: 'include' as any } // ignored by Safari; Chrome/Edge may include tab/system audio
+                // On Safari/iOS this is ignored; Chrome may include tab/system audio
+                audio: { systemAudio: 'include' as any }
             });
         } catch {
             return;
@@ -208,7 +264,6 @@ export default function HostControls({ room }: { room: Room }) {
         setPublishing(true);
         await publishTracks(stream);
 
-        // If user stops sharing from browser UI, stop our publication
         const dispV = display.getVideoTracks()[0];
         if (dispV) {
             dispV.addEventListener('ended', () => stop());
@@ -217,9 +272,7 @@ export default function HostControls({ room }: { room: Room }) {
 
     // Cleanup on unmount or room disconnect
     useEffect(() => {
-        const handleDisconnected = () => {
-            stop();
-        };
+        const handleDisconnected = () => { stop(); };
         room.on(RoomEvent.Disconnected, handleDisconnected);
         return () => {
             room.off(RoomEvent.Disconnected, handleDisconnected);
@@ -228,9 +281,18 @@ export default function HostControls({ room }: { room: Room }) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [room]);
 
+    const disabledFileMsg = !SUPPORT.videoCaptureStream && !SUPPORT.canvasCaptureStream && isIOS()
+        ? 'Not supported on this iOS Safari. Use Share screen.'
+        : !SUPPORT.videoCaptureStream && !SUPPORT.canvasCaptureStream
+            ? 'Browser lacks captureStream/canvas.captureStream.'
+            : '';
+
+    const fileDisabled = Boolean(disabledFileMsg);
+    const screenDisabled = !SUPPORT.getDisplayMedia;
+
     return (
         <div className="flex gap-2 items-center">
-            <label className="inline-block">
+            <label className={`inline-block ${fileDisabled ? 'opacity-50 cursor-not-allowed' : ''}`} title={disabledFileMsg}>
                 <span className="px-3 py-2 rounded bg-blue-600 text-white cursor-pointer">
                     {publishing ? 'Change video' : 'Select video'}
                 </span>
@@ -238,11 +300,17 @@ export default function HostControls({ room }: { room: Room }) {
                     type="file"
                     accept="video/*"
                     className="hidden"
+                    disabled={fileDisabled}
                     onChange={(e) => e.target.files && publishFromFile(e.target.files[0])}
                 />
             </label>
 
-            <button onClick={shareScreen} className="px-3 py-2 rounded bg-slate-700 text-white">
+            <button
+                onClick={shareScreen}
+                className={`px-3 py-2 rounded text-white ${screenDisabled ? 'bg-slate-500 cursor-not-allowed opacity-60' : 'bg-slate-700'}`}
+                disabled={screenDisabled}
+                title={screenDisabled ? (isIOS() ? 'Requires iOS 17+ Safari (may be unavailable on some iPhone models).' : 'getDisplayMedia not supported in this browser.') : ''}
+            >
                 Share screen/tab
             </button>
 
@@ -252,8 +320,9 @@ export default function HostControls({ room }: { room: Room }) {
                 </button>
             )}
 
-            {/* Hidden player feeding captureStream() */}
+            {/* Hidden player feeding capture/canvas */}
             <video ref={hiddenRef} className="hidden" />
+            <canvas ref={canvasRef} className="hidden" />
             {/* Local preview for the publisher */}
             <video controls ref={previewRef} className="w-48 h-28 rounded bg-black" autoPlay playsInline />
         </div>
