@@ -1,5 +1,8 @@
 import { Room, RoomEvent } from 'livekit-client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useContext } from 'react';
+import { SocketContext } from '@/context/SocketContext';
+import { useParams } from 'react-router-dom';
+import { VideoControlEnum } from '@/interfaces';
 
 function isIOS() {
     if (typeof navigator === 'undefined') return false;
@@ -19,6 +22,9 @@ function hasCanvasCaptureStream() {
 }
 
 export default function HostControls({ room }: { room: Room }) {
+    const socket = useContext(SocketContext);
+    const { id: groupId } = useParams();
+
     const hiddenRef = useRef<HTMLVideoElement>(null);
     const previewRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -28,11 +34,60 @@ export default function HostControls({ room }: { room: Room }) {
     const [pubTrackSids, setPubTrackSids] = useState<string[]>([]);
     const audioCtxRef = useRef<AudioContext | null>(null);
 
+    // Wire preview element controls (play/pause/seek) to drive the hidden source video
+    function bindPreviewControls() {
+        const prev = previewRef.current;
+        const src = hiddenRef.current;
+        if (!prev) return;
+
+        const onPlay = () => {
+            // if we have a source element (file publishing), keep it in lockstep
+            if (src && src.paused) {
+                try { src.play(); } catch { }
+            }
+            emitSync(VideoControlEnum.PLAY, src ? src.currentTime || 0 : 0);
+        };
+        const onPause = () => {
+            if (src && !src.paused) {
+                try { src.pause(); } catch { }
+            }
+            emitSync(VideoControlEnum.PAUSE, src ? src.currentTime || 0 : 0);
+        };
+        const onSeeking = () => {
+            if (src && Number.isFinite(prev.currentTime)) {
+                try { src.currentTime = prev.currentTime; } catch { }
+            }
+        };
+        const onSeeked = () => {
+            const t = src ? src.currentTime || 0 : (Number.isFinite(prev.currentTime) ? prev.currentTime : 0);
+            emitSync(prev.paused ? VideoControlEnum.PAUSE : VideoControlEnum.PLAY, t);
+        };
+
+        prev.addEventListener('play', onPlay);
+        prev.addEventListener('pause', onPause);
+        prev.addEventListener('seeking', onSeeking);
+        prev.addEventListener('seeked', onSeeked);
+
+        return () => {
+            prev.removeEventListener('play', onPlay);
+            prev.removeEventListener('pause', onPause);
+            prev.removeEventListener('seeking', onSeeking);
+            prev.removeEventListener('seeked', onSeeked);
+        };
+    }
+
     const SUPPORT = {
         getDisplayMedia: hasGetDisplayMedia(),
         videoCaptureStream: hasVideoCaptureStream(),
         canvasCaptureStream: hasCanvasCaptureStream(),
     };
+
+    function emitSync(action: VideoControlEnum, timeSec: number) {
+        if (!socket || !groupId) return;
+        try {
+            socket.emit('videoControl', { groupId, action, time: timeSec });
+        } catch { }
+    }
 
     // --- Audio helpers (Safari/iOS friendly) ---
     async function ensureAudioContext(): Promise<AudioContext | null> {
@@ -82,18 +137,36 @@ export default function HostControls({ room }: { room: Room }) {
     }
 
     // Publish given tracks and wire bookkeeping/preview
-    async function publishTracks(stream: MediaStream) {
-        // Show local preview (muted to avoid echo)
+    // Publish given tracks and wire bookkeeping/preview
+    async function publishTracks(
+        stream: MediaStream,
+        opts?: { previewFrom?: 'stream' | 'file'; fileSrc?: string }
+    ) {
+        const previewFrom = opts?.previewFrom ?? 'stream';
+
+        // Set preview element source:
+        // - screen share: use the stream (no seeking UI)
+        // - file share: use the file URL so native controls show scrubber/seek buttons
         if (previewRef.current) {
-            previewRef.current.srcObject = stream;
-            previewRef.current.muted = true;
-            previewRef.current.playsInline = true;
+            const prev = previewRef.current;
+            prev.muted = true;           // avoid echo
+            prev.playsInline = true;
+
             try {
-                await previewRef.current.play();
+                if (previewFrom === 'file' && opts?.fileSrc) {
+                    (prev as HTMLVideoElement).srcObject = null;
+                    prev.src = opts.fileSrc;
+                } else {
+                    prev.src = '';
+                    (prev as HTMLVideoElement).srcObject = stream;
+                }
+                await prev.play();
             } catch {
-                /* ignore */
+                /* ignore autoplay failure */
             }
         }
+
+        const unbindPreview = bindPreviewControls();
 
         const vt = stream.getVideoTracks()[0];
         const at = stream.getAudioTracks()[0];
@@ -108,10 +181,19 @@ export default function HostControls({ room }: { room: Room }) {
             setPubTrackSids((s) => [...s, audioPub.trackSid]);
             at.onended = () => stop();
         }
+
+        // store unbind for cleanup on stop
+        (previewRef.current as any).__unbindPreview = unbindPreview;
     }
 
     // --- STOP: unpublish & stop tracks we published ---
     async function stop() {
+        // let others know playback stopped at current position
+        const v = hiddenRef.current!;
+        if (v) {
+            emitSync(VideoControlEnum.PAUSE, v.currentTime || 0);
+        }
+
         room.localParticipant.trackPublications.forEach((pub) => {
             if (pubTrackSids.includes(pub.trackSid) && pub.track) {
                 try {
@@ -125,14 +207,23 @@ export default function HostControls({ room }: { room: Room }) {
         setPubTrackSids([]);
         setPublishing(false);
 
-        const v = hiddenRef.current!;
+        // unbind preview control listeners if any
+        const prev = previewRef.current as any;
+        if (prev && typeof prev.__unbindPreview === 'function') {
+            try { prev.__unbindPreview(); } catch { }
+            prev.__unbindPreview = undefined;
+        }
+
         if (v) {
             try { v.pause(); } catch { }
             v.src = '';
             v.onended = null;
         }
         if (previewRef.current) {
-            (previewRef.current as HTMLVideoElement).srcObject = null;
+            const prev = previewRef.current as HTMLVideoElement;
+            try { prev.pause(); } catch { }
+            prev.src = '';
+            (prev as any).srcObject = null;
         }
         if (audioCtxRef.current) {
             try { await audioCtxRef.current.close(); } catch { }
@@ -188,6 +279,15 @@ export default function HostControls({ room }: { room: Room }) {
         });
         try { await v.play(); } catch { }
 
+        // Broadcast state changes to everyone
+        const onPlay = () => emitSync(VideoControlEnum.PLAY, v.currentTime || 0);
+        const onPause = () => emitSync(VideoControlEnum.PAUSE, v.currentTime || 0);
+        const onSeeked = () => emitSync(v.paused ? VideoControlEnum.PAUSE : VideoControlEnum.PLAY, v.currentTime || 0);
+
+        v.addEventListener('play', onPlay);
+        v.addEventListener('pause', onPause);
+        v.addEventListener('seeked', onSeeked);
+
         let stream: MediaStream | undefined;
 
         if (SUPPORT.videoCaptureStream) {
@@ -219,9 +319,12 @@ export default function HostControls({ room }: { room: Room }) {
         }
 
         setPublishing(true);
-        await publishTracks(stream);
+        await publishTracks(stream, { previewFrom: 'file', fileSrc: v.src });
 
-        v.onended = () => { stop(); };
+        v.onended = () => {
+            emitSync(VideoControlEnum.PAUSE, v.duration || v.currentTime || 0);
+            stop();
+        };
     }
 
     // --- Screen/tab share ---
@@ -281,6 +384,34 @@ export default function HostControls({ room }: { room: Room }) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [room]);
 
+    useEffect(() => {
+        if (!socket) return;
+
+        const handler = (data: { user: any; action: VideoControlEnum; time: number }) => {
+            // Only the current publisher should drive the source element
+            if (!publishing) return;
+            const v = hiddenRef.current;
+            if (!v) return;
+
+            // Seek if we are too far off
+            if (Number.isFinite(data.time)) {
+                const drift = Math.abs((v.currentTime || 0) - data.time);
+                if (drift > 0.35) {
+                    try { v.currentTime = data.time; } catch { }
+                }
+            }
+
+            if (data.action === VideoControlEnum.PLAY) {
+                try { v.play(); } catch { }
+            } else if (data.action === VideoControlEnum.PAUSE) {
+                try { v.pause(); } catch { }
+            }
+        };
+
+        socket.on('syncVideo', handler);
+        return () => { socket.off('syncVideo', handler); };
+    }, [socket, publishing]);
+
     const disabledFileMsg = !SUPPORT.videoCaptureStream && !SUPPORT.canvasCaptureStream && isIOS()
         ? 'Not supported on this iOS Safari. Use Share screen.'
         : !SUPPORT.videoCaptureStream && !SUPPORT.canvasCaptureStream
@@ -323,8 +454,14 @@ export default function HostControls({ room }: { room: Room }) {
             {/* Hidden player feeding capture/canvas */}
             <video ref={hiddenRef} className="hidden" />
             <canvas ref={canvasRef} className="hidden" />
-            {/* Local preview for the publisher */}
-            <video controls ref={previewRef} className="w-48 h-28 rounded bg-black" autoPlay playsInline />
+            {/* Local preview for the publisher (controls used to drive sync) */}
+            <video
+                ref={previewRef}
+                className="w-full h-28 rounded bg-black"
+                controls
+                autoPlay
+                playsInline
+            />
         </div>
     );
 }
