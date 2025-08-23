@@ -8,29 +8,53 @@ export default function HostControls({ room }: { room: Room }) {
     const [pubTrackSids, setPubTrackSids] = useState<string[]>([]);
     const audioCtxRef = useRef<AudioContext | null>(null);
 
-    // Create/return a shared AudioContext (some browsers require user gesture already occurred)
-    function getAudioContext() {
+    // --- Audio helpers (Safari/iOS friendly) ---
+
+    // Create/return an AudioContext and ensure it's resumed (must be called after a user gesture)
+    async function ensureAudioContext(): Promise<AudioContext | null> {
         if (!audioCtxRef.current) {
-            try { audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)(); } catch { }
+            try {
+                audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+            } catch {
+                return null;
+            }
         }
-        return audioCtxRef.current;
+        const ctx = audioCtxRef.current;
+        if (ctx.state !== 'running') {
+            try {
+                await ctx.resume();
+            } catch {
+                /* ignore */
+            }
+        }
+        return ctx;
     }
 
     // Build an audio track from a <video> element via WebAudio (for Safari/iOS when captureStream has no audio)
-    function audioTrackFromVideoElement(el: HTMLMediaElement): MediaStreamTrack | undefined {
-        const ctx = getAudioContext();
+    async function audioTrackFromVideoElement(el: HTMLVideoElement): Promise<MediaStreamTrack | undefined> {
+        const ctx = await ensureAudioContext();
         if (!ctx) return undefined;
-        const src = ctx.createMediaElementSource(el);
-        const dest = ctx.createMediaStreamDestination();
-        try { src.connect(dest); src.connect(ctx.destination); } catch { }
-        return dest.stream.getAudioTracks()[0];
+
+        try {
+            const src = ctx.createMediaElementSource(el);
+            const dest = ctx.createMediaStreamDestination();
+            // Do NOT connect to ctx.destination to avoid local echo; publish only the dest stream
+            src.connect(dest);
+            const track = dest.stream.getAudioTracks()[0];
+            if (track) track.enabled = true;
+            return track;
+        } catch {
+            return undefined;
+        }
     }
 
     async function getMicTrack(): Promise<MediaStreamTrack | undefined> {
         try {
             const mic = await navigator.mediaDevices.getUserMedia({ audio: true });
             return mic.getAudioTracks()[0];
-        } catch { return undefined; }
+        } catch {
+            return undefined;
+        }
     }
 
     // Publish given tracks and wire bookkeeping/preview
@@ -40,7 +64,11 @@ export default function HostControls({ room }: { room: Room }) {
             previewRef.current.srcObject = stream;
             previewRef.current.muted = true;
             previewRef.current.playsInline = true;
-            previewRef.current.play().catch(() => { });
+            try {
+                await previewRef.current.play();
+            } catch {
+                /* ignore */
+            }
         }
 
         const vt = stream.getVideoTracks()[0];
@@ -61,9 +89,17 @@ export default function HostControls({ room }: { room: Room }) {
     // --- STOP: unpublish & stop tracks we published ---
     async function stop() {
         room.localParticipant.trackPublications.forEach((pub) => {
-            if (pubTrackSids.includes(pub.trackSid)) {
-                room.localParticipant.unpublishTrack(pub.track!);
-                pub.track?.stop();
+            if (pubTrackSids.includes(pub.trackSid) && pub.track) {
+                try {
+                    room.localParticipant.unpublishTrack(pub.track);
+                } catch {
+                    /* ignore */
+                }
+                try {
+                    pub.track.stop();
+                } catch {
+                    /* ignore */
+                }
             }
         });
         setPubTrackSids([]);
@@ -71,15 +107,19 @@ export default function HostControls({ room }: { room: Room }) {
 
         const v = hiddenRef.current!;
         if (v) {
-            v.pause();
+            try {
+                v.pause();
+            } catch { }
             v.src = '';
             v.onended = null;
         }
         if (previewRef.current) {
-            previewRef.current.srcObject = null;
+            (previewRef.current as HTMLVideoElement).srcObject = null;
         }
         if (audioCtxRef.current) {
-            audioCtxRef.current.close().catch(() => { });
+            try {
+                await audioCtxRef.current.close();
+            } catch { }
             audioCtxRef.current = null;
         }
     }
@@ -94,16 +134,34 @@ export default function HostControls({ room }: { room: Room }) {
         await replaceIfPublishing();
 
         const v = hiddenRef.current!;
+        // Prepare element
         v.src = URL.createObjectURL(file);
-        v.muted = true; v.playsInline = true;
-        await v.play();
+        v.crossOrigin = 'anonymous';
+        v.muted = true; // do not play via speakers; audio is routed via WebAudio when needed
+        v.playsInline = true;
 
+        // Safari: wait for metadata before play (and before creating WebAudio node)
+        await new Promise<void>((resolve) => {
+            const ready = () => resolve();
+            v.onloadedmetadata = ready;
+            v.oncanplay = ready;
+        });
+        try {
+            await v.play();
+        } catch {
+            /* ignore */
+        }
+
+        // Try native captureStream()
         let stream: MediaStream | undefined = (v as any).captureStream?.();
-        if (!stream) { alert('captureStream() not supported. Try Share Screen/Tab.'); return; }
+        if (!stream) {
+            alert('Your browser does not support captureStream(). Try “Share screen/tab”.');
+            return;
+        }
 
-        // Ensure we have audio: if captureStream has no audio, synthesize from video element (Safari)
+        // If the captured stream has no audio, synthesize via WebAudio (Safari/iOS)
         if (stream.getAudioTracks().length === 0) {
-            const aTrack = audioTrackFromVideoElement(v);
+            const aTrack = await audioTrackFromVideoElement(v);
             if (aTrack) {
                 const composed = new MediaStream([...stream.getVideoTracks()]);
                 composed.addTrack(aTrack);
@@ -114,40 +172,54 @@ export default function HostControls({ room }: { room: Room }) {
         setPublishing(true);
         await publishTracks(stream);
 
-        // Also stop when the <video> element finishes playback
-        v.onended = () => stop();
+        // Stop when the <video> finishes
+        v.onended = () => {
+            stop();
+        };
     }
 
-    // --- Screen/tab share fallback (desktop, includes system audio) ---
+    // --- Screen/tab share (desktop). iOS/Safari cannot share system audio; fallback to mic. ---
     async function shareScreen() {
         await replaceIfPublishing();
 
-        // Request display capture with audio; various browsers behave differently
         let display: MediaStream;
         try {
             display = await (navigator.mediaDevices as any).getDisplayMedia({
                 video: { frameRate: 30 },
-                audio: { echoCancellation: false, noiseSuppression: false }
+                audio: { systemAudio: 'include' as any } // ignored by Safari; Chrome/Edge may include tab/system audio
             });
-        } catch (e) { return; }
+        } catch {
+            return;
+        }
 
-        let stream = new MediaStream([...display.getVideoTracks()]);
+        const stream = new MediaStream([...display.getVideoTracks()]);
 
-        // Prefer display audio if provided; otherwise fall back to microphone
+        // Prefer display audio; otherwise fall back to microphone (iOS/Safari limitation)
         let aTrack: MediaStreamTrack | undefined = display.getAudioTracks()[0];
         if (!aTrack) {
             const mic = await getMicTrack();
             if (mic) aTrack = mic;
         }
-        if (aTrack) stream.addTrack(aTrack);
+        if (aTrack) {
+            aTrack.enabled = true;
+            stream.addTrack(aTrack);
+        }
 
         setPublishing(true);
         await publishTracks(stream);
+
+        // If user stops sharing from browser UI, stop our publication
+        const dispV = display.getVideoTracks()[0];
+        if (dispV) {
+            dispV.addEventListener('ended', () => stop());
+        }
     }
 
     // Cleanup on unmount or room disconnect
     useEffect(() => {
-        const handleDisconnected = () => { stop(); };
+        const handleDisconnected = () => {
+            stop();
+        };
         room.on(RoomEvent.Disconnected, handleDisconnected);
         return () => {
             room.off(RoomEvent.Disconnected, handleDisconnected);
@@ -183,13 +255,7 @@ export default function HostControls({ room }: { room: Room }) {
             {/* Hidden player feeding captureStream() */}
             <video ref={hiddenRef} className="hidden" />
             {/* Local preview for the publisher */}
-            <video
-                ref={previewRef}
-                className="w-48 h-28 rounded bg-black"
-                autoPlay
-                playsInline
-                muted
-            />
+            <video ref={previewRef} className="w-48 h-28 rounded bg-black" autoPlay playsInline muted />
         </div>
     );
 }
