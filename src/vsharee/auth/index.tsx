@@ -3,10 +3,11 @@ import Card from '@/utilities/components/card';
 import Login from './login';
 import Signup from './signup';
 import Button from '@mui/material/Button';
+import { CONSTANTS } from '@/data';
 
 const Authentication: React.FC = () => {
     const [isLogin, setIsLogin] = useState(true);
-    const VERSION = import.meta.env.VITE_VERSION;
+    const VERSION = CONSTANTS.APP_VERSION;
     return (
         <div className="flex flex-col gap-3 h-dvh w-full items-center justify-center bg-[linear-gradient(135deg,var(--color-primary),#3c0b10,var(--color-background))] px-4">
             <Card className="max-w-[450px]" title={isLogin ? 'Login' : 'Signup'}>

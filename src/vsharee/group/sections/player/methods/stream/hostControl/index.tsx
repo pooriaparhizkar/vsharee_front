@@ -255,7 +255,7 @@ export default function HostControls({ room }: { room: Room }) {
             {/* Hidden player feeding captureStream() */}
             <video ref={hiddenRef} className="hidden" />
             {/* Local preview for the publisher */}
-            <video ref={previewRef} className="w-48 h-28 rounded bg-black" autoPlay playsInline muted />
+            <video controls ref={previewRef} className="w-48 h-28 rounded bg-black" autoPlay playsInline />
         </div>
     );
 }
