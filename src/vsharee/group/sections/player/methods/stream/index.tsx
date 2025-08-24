@@ -146,11 +146,9 @@ const StreamVideoPlayer: React.FC<StreamVideoPlayerProps> = (props: StreamVideoP
                 </button>
             )}
 
-            {(isPublishing || hasRemoteVideo) && (
-                <div className="relative rounded-xl overflow-hidden">
-                    <video ref={viewerRef} className="w-full bg-black" controls />
-                </div>
-            )}
+            <div className={`relative rounded-xl overflow-hidden ${!(isPublishing || hasRemoteVideo) ? 'invisible h-0' : ''}`}>
+                <video ref={viewerRef} className="w-full bg-black" controls autoPlay playsInline />
+            </div>
 
             <audio ref={audioRef} className="hidden" />
         </div>
