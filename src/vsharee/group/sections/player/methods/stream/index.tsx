@@ -20,17 +20,15 @@ function isMobileSafariUA() {
 }
 
 const StreamVideoPlayer: React.FC<StreamVideoPlayerProps> = (props: StreamVideoPlayerProps) => {
-    const auth = useAtomValue(livekitAuthAtom);
-    const { room } = useLiveKit(); // connects when auth present
+    const { room } = useLiveKit();
     const socket = useContext(SocketContext);
-    const { id: groupId } = useParams();
     const viewerRef = useRef<HTMLVideoElement>(null);
     const audioRef = useRef<HTMLAudioElement>(null);
     const [needTapToPlay, setNeedTapToPlay] = useState(false);
     const [myRole, setMyRole] = useState<GroupRoleEnum>();
     const canControl = myRole && [GroupRoleEnum.CONTROLLER, GroupRoleEnum.CREATOR].includes(myRole);
-    const [pausedByHost, setPausedByHost] = useState(false);
-    const [pausedAt, setPausedAt] = useState<number | null>(null);
+    const [isPublishing, setIsPublishing] = useState(false);
+    const [hasRemoteVideo, setHasRemoteVideo] = useState(false);
 
     useEffect(() => {
         if (props.myRole) setMyRole(props.myRole);
@@ -51,6 +49,7 @@ const StreamVideoPlayer: React.FC<StreamVideoPlayerProps> = (props: StreamVideoP
                 } catch {
                     /* ignore */
                 }
+                setHasRemoteVideo(true);
             }
             if (track.kind === 'audio') {
                 if (!audioRef.current) return;
@@ -77,6 +76,7 @@ const StreamVideoPlayer: React.FC<StreamVideoPlayerProps> = (props: StreamVideoP
                 audioRef.current.srcObject = null;
             }
             setNeedTapToPlay(false);
+            setHasRemoteVideo(false);
         };
 
         room.on(RoomEvent.TrackSubscribed, onSubscribed);
@@ -98,8 +98,6 @@ const StreamVideoPlayer: React.FC<StreamVideoPlayerProps> = (props: StreamVideoP
             // by the publisher (HostControls). We only update UI and try to resume playback
             // if autoplay was blocked previously.
             if (data.action === VideoControlEnum.PLAY) {
-                setPausedByHost(false);
-                setPausedAt(null);
                 // try resume audio if Safari/iOS blocked it earlier
                 if (audioRef.current) {
                     audioRef.current.play().catch(() => {/* ignore; button will remain if needed */ });
@@ -107,11 +105,6 @@ const StreamVideoPlayer: React.FC<StreamVideoPlayerProps> = (props: StreamVideoP
                 if (viewerRef.current) {
                     viewerRef.current.play?.().catch(() => {/* ignore */ });
                 }
-            } else if (data.action === VideoControlEnum.PAUSE) {
-                setPausedByHost(true);
-                setPausedAt(Number.isFinite(data.time) ? data.time : null);
-                // We DO NOT pause the element locally; pausing here only affects this viewer.
-                // HostControls already paused the source; remote frames will stop advancing.
             }
         };
         socket.on('syncVideo', handler);
@@ -130,7 +123,19 @@ const StreamVideoPlayer: React.FC<StreamVideoPlayerProps> = (props: StreamVideoP
 
     return (
         <div className="space-y-3">
-            {canControl && room && <HostControls room={room} />}
+            {canControl && room && (
+                <HostControls
+                    room={room}
+                    previewRef={viewerRef}
+                    onPublishingChange={setIsPublishing}
+                />
+            )}
+
+            {!canControl && !hasRemoteVideo && (
+                <div className="px-3 py-2 rounded bg-slate-100 text-slate-700">
+                    Waiting for a host to start streaming…
+                </div>
+            )}
 
             {needTapToPlay && (
                 <button
@@ -141,16 +146,11 @@ const StreamVideoPlayer: React.FC<StreamVideoPlayerProps> = (props: StreamVideoP
                 </button>
             )}
 
-            <div className="relative rounded-xl overflow-hidden">
-                <video ref={viewerRef} className="w-full bg-black" />
-                {pausedByHost && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                        <div className="px-3 py-1 rounded bg-white/90 text-black text-sm">
-                            Paused by controller{pausedAt !== null ? ` @ ${Math.floor(pausedAt)}s` : ''}
-                        </div>
-                    </div>
-                )}
-            </div>
+            {(isPublishing || hasRemoteVideo) && (
+                <div className="relative rounded-xl overflow-hidden">
+                    <video ref={viewerRef} className="w-full bg-black" controls />
+                </div>
+            )}
 
             <audio ref={audioRef} className="hidden" />
         </div>

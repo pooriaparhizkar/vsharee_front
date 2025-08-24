@@ -21,12 +21,13 @@ function hasCanvasCaptureStream() {
     return typeof HTMLCanvasElement.prototype.captureStream === 'function';
 }
 
-export default function HostControls({ room }: { room: Room }) {
+export default function HostControls(
+    { room, previewRef, onPublishingChange }: { room: Room; previewRef: React.RefObject<HTMLVideoElement>; onPublishingChange?: (p: boolean) => void }
+) {
     const socket = useContext(SocketContext);
     const { id: groupId } = useParams();
 
     const hiddenRef = useRef<HTMLVideoElement>(null);
-    const previewRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const rafRef = useRef<number | null>(null);
 
@@ -136,22 +137,16 @@ export default function HostControls({ room }: { room: Room }) {
         }
     }
 
-    // Publish given tracks and wire bookkeeping/preview
-    // Publish given tracks and wire bookkeeping/preview
     async function publishTracks(
         stream: MediaStream,
         opts?: { previewFrom?: 'stream' | 'file'; fileSrc?: string }
     ) {
         const previewFrom = opts?.previewFrom ?? 'stream';
 
-        // Set preview element source:
-        // - screen share: use the stream (no seeking UI)
-        // - file share: use the file URL so native controls show scrubber/seek buttons
         if (previewRef.current) {
             const prev = previewRef.current;
-            prev.muted = true;           // avoid echo
+            prev.muted = true;
             prev.playsInline = true;
-
             try {
                 if (previewFrom === 'file' && opts?.fileSrc) {
                     (prev as HTMLVideoElement).srcObject = null;
@@ -161,9 +156,7 @@ export default function HostControls({ room }: { room: Room }) {
                     (prev as HTMLVideoElement).srcObject = stream;
                 }
                 await prev.play();
-            } catch {
-                /* ignore autoplay failure */
-            }
+            } catch { }
         }
 
         const unbindPreview = bindPreviewControls();
@@ -182,7 +175,6 @@ export default function HostControls({ room }: { room: Room }) {
             at.onended = () => stop();
         }
 
-        // store unbind for cleanup on stop
         (previewRef.current as any).__unbindPreview = unbindPreview;
     }
 
@@ -206,6 +198,7 @@ export default function HostControls({ room }: { room: Room }) {
         });
         setPubTrackSids([]);
         setPublishing(false);
+        onPublishingChange?.(false);
 
         // unbind preview control listeners if any
         const prev = previewRef.current as any;
@@ -310,6 +303,7 @@ export default function HostControls({ room }: { room: Room }) {
         }
 
         setPublishing(true);
+        onPublishingChange?.(true);
         await publishTracks(stream, { previewFrom: 'file', fileSrc: v.src });
 
         v.onended = () => {
@@ -356,6 +350,7 @@ export default function HostControls({ room }: { room: Room }) {
         }
 
         setPublishing(true);
+        onPublishingChange?.(true);
         await publishTracks(stream);
 
         const dispV = display.getVideoTracks()[0];
@@ -445,14 +440,6 @@ export default function HostControls({ room }: { room: Room }) {
             {/* Hidden player feeding capture/canvas */}
             <video ref={hiddenRef} className="hidden" />
             <canvas ref={canvasRef} className="hidden" />
-            {/* Local preview for the publisher (controls used to drive sync) */}
-            <video
-                ref={previewRef}
-                className="w-full h-28 rounded bg-black"
-                controls
-                autoPlay
-                playsInline
-            />
         </div>
     );
 }
