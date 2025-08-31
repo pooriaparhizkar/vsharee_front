@@ -64,11 +64,7 @@ const GroupVideoPlayer: React.FC<GroupVideoPlayerProps> = (props: GroupVideoPlay
         });
 
         socket?.on('contentReset', () => {
-            if (selectedItemRef.current?.key === VideoPlayingMethodsEnum.STREAM) {
-                // setTimeout(() => {
-                //     resetContent();
-                // }, 1000);
-            } else resetContent();
+            resetContent();
         });
     }, []);
 
