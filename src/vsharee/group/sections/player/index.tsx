@@ -26,6 +26,7 @@ const GroupVideoPlayer: React.FC<GroupVideoPlayerProps> = (props: GroupVideoPlay
     const anchorRef = useRef<HTMLDivElement>(null);
     const userData = useAtomValue(userDataAtom);
     const [selectedItem, setSelectedItem] = useState<{ title: string; key: VideoPlayingMethodsEnum }>();
+    const selectedItemRef = useRef<any>(null);
     const [isChosen, setIsChosen] = useState(false);
     const socket = useContext(SocketContext);
     const [isIdle, setIsIdle] = useState(props.groupData?.isIdle);
@@ -56,16 +57,26 @@ const GroupVideoPlayer: React.FC<GroupVideoPlayerProps> = (props: GroupVideoPlay
 
     useEffect(() => {
         socket?.on('methodSelected', (res) => {
-            setSelectedItem(VideoPlayingMethodsData.find((item) => item.key === res.method));
+            const targetMethod = VideoPlayingMethodsData.find((item) => item.key === res.method);
+            setSelectedItem(targetMethod);
+            selectedItemRef.current = targetMethod;
             setIsChosen(true);
         });
 
         socket?.on('contentReset', () => {
-            setIsChosen(false);
-            setSelectedItem(undefined);
-            setIsIdle(true);
+            if (selectedItemRef.current?.key === VideoPlayingMethodsEnum.STREAM) {
+                // setTimeout(() => {
+                //     resetContent();
+                // }, 1000);
+            } else resetContent();
         });
     }, []);
+
+    function resetContent() {
+        setIsChosen(false);
+        setSelectedItem(undefined);
+        setIsIdle(true);
+    }
     return (
         <Card className={`flex-1 overflow-hidden !p-0`}>
             {!isIdle ? (

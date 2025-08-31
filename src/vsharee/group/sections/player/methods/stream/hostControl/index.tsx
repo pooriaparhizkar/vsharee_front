@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, useContext } from 'react';
 import { SocketContext } from '@/context/SocketContext';
 import { useParams } from 'react-router-dom';
 import { VideoControlEnum } from '@/interfaces';
+import Button from '@mui/material/Button';
 
 function isIOS() {
     if (typeof navigator === 'undefined') return false;
@@ -21,9 +22,17 @@ function hasCanvasCaptureStream() {
     return typeof HTMLCanvasElement.prototype.captureStream === 'function';
 }
 
-export default function HostControls(
-    { room, previewRef, onPublishingChange }: { room: Room; previewRef: React.RefObject<HTMLVideoElement>; onPublishingChange?: (p: boolean) => void }
-) {
+export default function HostControls({
+    room,
+    previewRef,
+    onPublishingChange,
+    hasViewerSource,
+}: {
+    room: Room;
+    previewRef: React.RefObject<HTMLVideoElement>;
+    onPublishingChange?: (p: boolean) => void;
+    hasViewerSource: boolean;
+}) {
     const socket = useContext(SocketContext);
     const { id: groupId } = useParams();
 
@@ -44,23 +53,29 @@ export default function HostControls(
         const onPlay = () => {
             // if we have a source element (file publishing), keep it in lockstep
             if (src && src.paused) {
-                try { src.play(); } catch { }
+                try {
+                    src.play();
+                } catch {}
             }
             emitSync(VideoControlEnum.PLAY, src ? src.currentTime || 0 : 0);
         };
         const onPause = () => {
             if (src && !src.paused) {
-                try { src.pause(); } catch { }
+                try {
+                    src.pause();
+                } catch {}
             }
             emitSync(VideoControlEnum.PAUSE, src ? src.currentTime || 0 : 0);
         };
         const onSeeking = () => {
             if (src && Number.isFinite(prev.currentTime)) {
-                try { src.currentTime = prev.currentTime; } catch { }
+                try {
+                    src.currentTime = prev.currentTime;
+                } catch {}
             }
         };
         const onSeeked = () => {
-            const t = src ? src.currentTime || 0 : (Number.isFinite(prev.currentTime) ? prev.currentTime : 0);
+            const t = src ? src.currentTime || 0 : Number.isFinite(prev.currentTime) ? prev.currentTime : 0;
             emitSync(prev.paused ? VideoControlEnum.PAUSE : VideoControlEnum.PLAY, t);
         };
 
@@ -87,7 +102,7 @@ export default function HostControls(
         if (!socket || !groupId) return;
         try {
             socket.emit('videoControl', { groupId, action, time: timeSec });
-        } catch { }
+        } catch {}
     }
 
     // --- Audio helpers (Safari/iOS friendly) ---
@@ -137,10 +152,7 @@ export default function HostControls(
         }
     }
 
-    async function publishTracks(
-        stream: MediaStream,
-        opts?: { previewFrom?: 'stream' | 'file'; fileSrc?: string }
-    ) {
+    async function publishTracks(stream: MediaStream, opts?: { previewFrom?: 'stream' | 'file'; fileSrc?: string }) {
         const previewFrom = opts?.previewFrom ?? 'stream';
 
         if (previewRef.current) {
@@ -156,7 +168,7 @@ export default function HostControls(
                     (prev as HTMLVideoElement).srcObject = stream;
                 }
                 await prev.play();
-            } catch { }
+            } catch {}
         }
 
         const unbindPreview = bindPreviewControls();
@@ -190,10 +202,10 @@ export default function HostControls(
             if (pubTrackSids.includes(pub.trackSid) && pub.track) {
                 try {
                     room.localParticipant.unpublishTrack(pub.track);
-                } catch { }
+                } catch {}
                 try {
                     pub.track.stop();
-                } catch { }
+                } catch {}
             }
         });
         setPubTrackSids([]);
@@ -203,23 +215,37 @@ export default function HostControls(
         // unbind preview control listeners if any
         const prev = previewRef.current as any;
         if (prev && typeof prev.__unbindPreview === 'function') {
-            try { prev.__unbindPreview(); } catch { }
+            try {
+                prev.__unbindPreview();
+            } catch {}
             prev.__unbindPreview = undefined;
         }
 
         if (v) {
-            try { v.pause(); } catch { }
+            try {
+                v.pause();
+            } catch {}
             v.src = '';
             v.onended = null;
         }
         if (previewRef.current) {
             const prev = previewRef.current as HTMLVideoElement;
-            try { prev.pause(); } catch { }
-            prev.src = '';
+            try {
+                prev.pause();
+            } catch {}
+            // Clear both src and srcObject, then force a reload so 'emptied' fires
+            try {
+                prev.removeAttribute('src');
+            } catch {}
             (prev as any).srcObject = null;
+            try {
+                prev.load();
+            } catch {}
         }
         if (audioCtxRef.current) {
-            try { await audioCtxRef.current.close(); } catch { }
+            try {
+                await audioCtxRef.current.close();
+            } catch {}
             audioCtxRef.current = null;
         }
         if (rafRef.current) {
@@ -246,7 +272,7 @@ export default function HostControls(
         const draw = () => {
             try {
                 ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
-            } catch { }
+            } catch {}
             rafRef.current = requestAnimationFrame(draw);
         };
         draw();
@@ -270,7 +296,9 @@ export default function HostControls(
             v.onloadedmetadata = ready;
             v.oncanplay = ready;
         });
-        try { await v.play(); } catch { }
+        try {
+            await v.play();
+        } catch {}
 
         let stream: MediaStream | undefined;
 
@@ -287,7 +315,7 @@ export default function HostControls(
             alert(
                 isIOS()
                     ? 'iOS Safari does not support streaming local files directly. Please use Screen/Tab share or switch to desktop.'
-                    : 'Your browser does not support captureStream/canvas capture. Try a different browser.'
+                    : 'Your browser does not support captureStream/canvas capture. Try a different browser.',
             );
             return;
         }
@@ -320,7 +348,7 @@ export default function HostControls(
             alert(
                 isIOS()
                     ? 'Screen sharing requires iOS 17+ (Safari) and is not available on some iPhone models. Try updating iOS or use a desktop.'
-                    : 'Screen capture API (getDisplayMedia) is not supported in this browser.'
+                    : 'Screen capture API (getDisplayMedia) is not supported in this browser.',
             );
             return;
         }
@@ -330,7 +358,7 @@ export default function HostControls(
             display = await (navigator.mediaDevices as any).getDisplayMedia({
                 video: { frameRate: 30 },
                 // On Safari/iOS this is ignored; Chrome may include tab/system audio
-                audio: { systemAudio: 'include' as any }
+                audio: { systemAudio: 'include' as any },
             });
         } catch {
             return;
@@ -361,7 +389,9 @@ export default function HostControls(
 
     // Cleanup on unmount or room disconnect
     useEffect(() => {
-        const handleDisconnected = () => { stop(); };
+        const handleDisconnected = () => {
+            stop();
+        };
         room.on(RoomEvent.Disconnected, handleDisconnected);
         return () => {
             room.off(RoomEvent.Disconnected, handleDisconnected);
@@ -383,59 +413,89 @@ export default function HostControls(
             if (Number.isFinite(data.time)) {
                 const drift = Math.abs((v.currentTime || 0) - data.time);
                 if (drift > 0.35) {
-                    try { v.currentTime = data.time; } catch { }
+                    try {
+                        v.currentTime = data.time;
+                    } catch {}
                 }
             }
 
             if (data.action === VideoControlEnum.PLAY) {
-                try { v.play(); } catch { }
+                try {
+                    v.play();
+                } catch {}
             } else if (data.action === VideoControlEnum.PAUSE) {
-                try { v.pause(); } catch { }
+                try {
+                    v.pause();
+                } catch {}
             }
         };
 
         socket.on('syncVideo', handler);
-        return () => { socket.off('syncVideo', handler); };
+        return () => {
+            socket.off('syncVideo', handler);
+        };
     }, [socket, publishing]);
 
-    const disabledFileMsg = !SUPPORT.videoCaptureStream && !SUPPORT.canvasCaptureStream && isIOS()
-        ? 'Not supported on this iOS Safari. Use Share screen.'
-        : !SUPPORT.videoCaptureStream && !SUPPORT.canvasCaptureStream
-            ? 'Browser lacks captureStream/canvas.captureStream.'
-            : '';
+    useEffect(() => {
+        socket?.on('contentReset', () => {
+            stop();
+        });
+    }, []);
+
+    const disabledFileMsg =
+        !SUPPORT.videoCaptureStream && !SUPPORT.canvasCaptureStream && isIOS()
+            ? 'Not supported on this iOS Safari. Use Share screen.'
+            : !SUPPORT.videoCaptureStream && !SUPPORT.canvasCaptureStream
+              ? 'Browser lacks captureStream/canvas.captureStream.'
+              : '';
 
     const fileDisabled = Boolean(disabledFileMsg);
     const screenDisabled = !SUPPORT.getDisplayMedia;
 
     return (
-        <div className="flex gap-2 items-center">
-            <label className={`inline-block ${fileDisabled ? 'opacity-50 cursor-not-allowed' : ''}`} title={disabledFileMsg}>
-                <span className="px-3 py-2 rounded bg-blue-600 text-white cursor-pointer">
-                    {publishing ? 'Change video' : 'Select video'}
-                </span>
-                <input
-                    type="file"
-                    accept="video/*"
-                    className="hidden"
-                    disabled={fileDisabled}
-                    onChange={(e) => e.target.files && publishFromFile(e.target.files[0])}
-                />
-            </label>
+        <div>
+            {!hasViewerSource && (
+                <div className="flex h-full w-full items-center justify-center gap-2">
+                    <Button
+                        variant="contained"
+                        className={`inline-block ${fileDisabled ? 'cursor-not-allowed opacity-50' : ''}`}
+                        title={disabledFileMsg}
+                    >
+                        {publishing ? 'Change video' : 'Select video'}
 
-            <button
-                onClick={shareScreen}
-                className={`px-3 py-2 rounded text-white ${screenDisabled ? 'bg-slate-500 cursor-not-allowed opacity-60' : 'bg-slate-700'}`}
-                disabled={screenDisabled}
-                title={screenDisabled ? (isIOS() ? 'Requires iOS 17+ Safari (may be unavailable on some iPhone models).' : 'getDisplayMedia not supported in this browser.') : ''}
-            >
-                Share screen/tab
-            </button>
+                        <input
+                            type="file"
+                            accept="video/*"
+                            className="hidden"
+                            disabled={fileDisabled}
+                            onChange={(e) => e.target.files && publishFromFile(e.target.files[0])}
+                        />
+                    </Button>
 
-            {publishing && (
-                <button onClick={stop} className="px-3 py-2 rounded bg-rose-600 text-white">
-                    Stop
-                </button>
+                    <Button
+                        variant="outlined"
+                        onClick={shareScreen}
+                        className={`rounded px-3 py-2 text-white ${screenDisabled ? 'cursor-not-allowed bg-slate-500 opacity-60' : 'bg-slate-700'}`}
+                        disabled={screenDisabled}
+                        title={
+                            screenDisabled
+                                ? isIOS()
+                                    ? 'Requires iOS 17+ Safari (may be unavailable on some iPhone models).'
+                                    : 'getDisplayMedia not supported in this browser.'
+                                : ''
+                        }
+                    >
+                        Share screen/tab
+                    </Button>
+
+                    {publishing && (
+                        <button onClick={stop} className="rounded bg-rose-600 px-3 py-2 text-white">
+                            Stop
+                        </button>
+                    )}
+                </div>
             )}
+            <button onClick={stop}>stop</button>
 
             {/* Hidden player feeding capture/canvas */}
             <video ref={hiddenRef} className="hidden" />
