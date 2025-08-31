@@ -39,6 +39,12 @@ export default function HostControls({
     const hiddenRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const rafRef = useRef<number | null>(null);
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+    // NEW: keep handles to raw capture streams/tracks so we can fully stop them
+    const displayStreamRef = useRef<MediaStream | null>(null);
+    const fileCaptureStreamRef = useRef<MediaStream | null>(null);
+    const micTrackRef = useRef<MediaStreamTrack | null>(null);
 
     const [publishing, setPublishing] = useState(false);
     const [pubTrackSids, setPubTrackSids] = useState<string[]>([]);
@@ -198,6 +204,7 @@ export default function HostControls({
             emitSync(VideoControlEnum.PAUSE, v.currentTime || 0);
         }
 
+        // 1) Unpublish & stop LiveKit tracks we published
         room.localParticipant.trackPublications.forEach((pub) => {
             if (pubTrackSids.includes(pub.trackSid) && pub.track) {
                 try {
@@ -212,7 +219,22 @@ export default function HostControls({
         setPublishing(false);
         onPublishingChange?.(false);
 
-        // unbind preview control listeners if any
+        // 2) Stop the ORIGINAL capture streams/tracks (dismisses Chrome's banner)
+        const stopAll = (ms: MediaStream | null) => {
+            try {
+                ms?.getTracks().forEach((t) => t.stop());
+            } catch {}
+        };
+        stopAll(displayStreamRef.current);
+        stopAll(fileCaptureStreamRef.current);
+        try {
+            micTrackRef.current?.stop();
+        } catch {}
+        displayStreamRef.current = null;
+        fileCaptureStreamRef.current = null;
+        micTrackRef.current = null;
+
+        // 3) Unbind preview control listeners if any
         const prev = previewRef.current as any;
         if (prev && typeof prev.__unbindPreview === 'function') {
             try {
@@ -221,27 +243,36 @@ export default function HostControls({
             prev.__unbindPreview = undefined;
         }
 
+        // 4) Tear down media elements and release object URLs
         if (v) {
             try {
                 v.pause();
             } catch {}
-            v.src = '';
+            try {
+                URL.revokeObjectURL(v.src);
+            } catch {}
+            try {
+                v.removeAttribute('src');
+            } catch {}
             v.onended = null;
+            try {
+                v.load();
+            } catch {}
         }
         if (previewRef.current) {
-            const prev = previewRef.current as HTMLVideoElement;
+            const pre = previewRef.current as HTMLVideoElement;
             try {
-                prev.pause();
+                pre.pause();
             } catch {}
-            // Clear both src and srcObject, then force a reload so 'emptied' fires
             try {
-                prev.removeAttribute('src');
+                pre.removeAttribute('src');
             } catch {}
-            (prev as any).srcObject = null;
+            (pre as any).srcObject = null;
             try {
-                prev.load();
+                pre.load();
             } catch {}
         }
+
         if (audioCtxRef.current) {
             try {
                 await audioCtxRef.current.close();
@@ -330,6 +361,9 @@ export default function HostControls({
             }
         }
 
+        // NEW: remember the file/canvas capture stream
+        fileCaptureStreamRef.current = stream;
+
         setPublishing(true);
         onPublishingChange?.(true);
         await publishTracks(stream, { previewFrom: 'file', fileSrc: v.src });
@@ -364,13 +398,19 @@ export default function HostControls({
             return;
         }
 
+        // NEW: remember the raw display stream (needed to dismiss Chrome's banner)
+        displayStreamRef.current = display;
+
         const stream = new MediaStream([...display.getVideoTracks()]);
 
         // Prefer display audio; otherwise fall back to microphone (iOS/Safari limitation)
         let aTrack: MediaStreamTrack | undefined = display.getAudioTracks()[0];
         if (!aTrack) {
             const mic = await getMicTrack();
-            if (mic) aTrack = mic;
+            if (mic) {
+                aTrack = mic;
+                micTrackRef.current = mic; // NEW: remember mic so we can stop it
+            }
         }
         if (aTrack) {
             aTrack.enabled = true;
@@ -460,22 +500,25 @@ export default function HostControls({
                         variant="contained"
                         className={`inline-block ${fileDisabled ? 'cursor-not-allowed opacity-50' : ''}`}
                         title={disabledFileMsg}
+                        onClick={() => fileInputRef.current?.click()}
                     >
                         {publishing ? 'Change video' : 'Select video'}
-
-                        <input
-                            type="file"
-                            accept="video/*"
-                            className="hidden"
-                            disabled={fileDisabled}
-                            onChange={(e) => e.target.files && publishFromFile(e.target.files[0])}
-                        />
                     </Button>
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="video/*"
+                        className="hidden"
+                        disabled={fileDisabled}
+                        onChange={(e) => e.target.files && publishFromFile(e.target.files[0])}
+                    />
 
                     <Button
                         variant="outlined"
                         onClick={shareScreen}
-                        className={`rounded px-3 py-2 text-white ${screenDisabled ? 'cursor-not-allowed bg-slate-500 opacity-60' : 'bg-slate-700'}`}
+                        className={`rounded px-3 py-2 text-white ${
+                            screenDisabled ? 'cursor-not-allowed bg-slate-500 opacity-60' : 'bg-slate-700'
+                        }`}
                         disabled={screenDisabled}
                         title={
                             screenDisabled
@@ -487,15 +530,19 @@ export default function HostControls({
                     >
                         Share screen/tab
                     </Button>
-
-                    {publishing && (
-                        <button onClick={stop} className="rounded bg-rose-600 px-3 py-2 text-white">
-                            Stop
-                        </button>
-                    )}
                 </div>
             )}
-            <button onClick={stop}>stop</button>
+
+            {publishing && (
+                <div className="absolute top-3 left-3 z-100 flex items-center gap-4">
+                    <button
+                        onClick={stop}
+                        className="cursor-pointer rounded bg-black/60 px-2 py-1 text-white transition-opacity hover:opacity-70"
+                    >
+                        Stop
+                    </button>
+                </div>
+            )}
 
             {/* Hidden player feeding capture/canvas */}
             <video ref={hiddenRef} className="hidden" />

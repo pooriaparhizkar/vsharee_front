@@ -251,12 +251,6 @@ const StreamVideoPlayer: React.FC<StreamVideoPlayerProps> = (props: StreamVideoP
                     >
                         CC
                     </button>
-                    <button
-                        onClick={() => subtitleInputRef.current?.click()}
-                        className="cursor-pointer rounded bg-black/60 px-2 py-1 text-white transition-opacity hover:opacity-70"
-                    >
-                        Stop
-                    </button>
                 </div>
                 <input
                     type="file"
