@@ -20,6 +20,12 @@ const GroupChatDesktop: React.FC<GroupChatDesktopProps> = (props: GroupChatDeskt
     const [messages, setMessages] = useState<SocketMessageType[]>(props.initialMessages ?? []);
     const [sendingLoading, setSendingLoading] = useState(false);
     const scrollRef = useRef<HTMLDivElement | null>(null);
+    const beepAudioRef = useRef<HTMLAudioElement | null>(null);
+
+    useEffect(() => {
+        beepAudioRef.current = new Audio('/beep.mp3');
+        beepAudioRef.current.preload = 'auto';
+    }, []);
 
     useEffect(() => {
         if (props.initialMessages) setMessages(props.initialMessages);
@@ -28,6 +34,13 @@ const GroupChatDesktop: React.FC<GroupChatDesktopProps> = (props: GroupChatDeskt
     useEffect(() => {
         socket?.on('newMessage', (res) => {
             setMessages((prev) => [...(prev || []), res]);
+
+            // Play a beep sound when message is from another user
+            if (res.user.id !== userData?.id && beepAudioRef.current) {
+                beepAudioRef.current.currentTime = 0;
+                beepAudioRef.current.play().catch(() => {});
+            }
+
             if (res.user.id === userData?.id && newMessageRef.current === res.message) {
                 setSendingLoading(false);
                 setNewMessage('');
